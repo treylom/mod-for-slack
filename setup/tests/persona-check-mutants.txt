@@ -1,0 +1,42 @@
+# persona-check.py mutants — one check (or one branch of a check) off each. Format: description ||| old ||| new
+# run: bash setup/tests/mutate.sh setup/lib/persona-check.py PERSONA_CHECK setup/tests/persona-check-mutants.txt setup/tests/persona-test.sh
+required group off ||| files, prel = ctx['files'], ctx['persona'] ||| return []
+required: name missing not reported ||| elif not name: ||| elif False:
+required: name shape not checked ||| elif not NAME_RE.match(name): ||| elif False:
+required: name stub no longer left to the placeholder column ||| if is_stub(name): ||| if False:
+required: role stub no longer left to the placeholder column ||| if is_stub(role): ||| if False:
+required: role missing not reported ||| elif not role or not re.match(r'^[a-z][a-z0-9-]{0,31}$', role): ||| elif False:
+required: empty role section accepted ||| elif rlines is None or content_chars(rlines) < 8: ||| elif False:
+required: missing voice/boundary section accepted ||| if lines is None: ||| if False:
+required: empty voice/boundary section accepted ||| elif content_chars(lines) < 8: ||| elif False:
+required: missing CLAUDE.md accepted ||| if cl is None: ||| if False:
+required: CLAUDE.md that does not pull persona.md in accepted ||| elif not re.search(rb'(?m)^\s*@(\./)?' + re.escape(prel.encode()) + rb'\s*$', cl): ||| elif False:
+placeholder group off ||| for ln, tok in stub_tokens(text_of(data)): ||| for ln, tok in []:
+placeholder: UPPER_SNAKE stubs not seen ||| for m in re.finditer(r'<([A-Z][A-Z0-9_]{2,40})>', ln): ||| for m in []:
+placeholder: generic <...> stubs not seen ||| for m in re.finditer(r'<([^<>\s!@#/=\-][^<>\n]{0,60})>', plain): ||| for m in []:
+placeholder: html tags counted as stubs ||| if inner.split()[0].lower() in HTML_TAGS: ||| if False:
+placeholder: links counted as stubs ||| if re.match(r'(https?://|mailto:|ftp://)', inner): ||| if False:
+placeholder: code fences scanned ||| if fenced: ||| if False:
+placeholder: code spans scanned ||| plain = re.sub(r'`[^`\n]*`', '', ln) ||| plain = ln
+placeholder: html comments scanned ||| lines = mask_comments(text).split('\n') ||| lines = text.split('\n')
+secret group off ||| hits = scan_lines(data, ctx['secret_rx']) ||| hits = {}
+secret: slack bot token shape dropped ||| ('slack-token', rb'xox[abposr]-[A-Za-z0-9-]{10,}'), |||
+secret: slack app token shape dropped ||| ('slack-app-token', rb'xapp-[0-9]-[A-Za-z0-9-]{10,}'), |||
+secret: anthropic key shape dropped ||| ('anthropic-key', rb'sk-ant-[A-Za-z0-9_-]{10,}'), |||
+secret: generic sk- key shape dropped ||| ('api-key', rb'(?<![A-Za-z0-9])sk-[A-Za-z0-9_-]{20,}'), |||
+secret: github token shape dropped ||| ('github-token', rb'gh[pousr]_[A-Za-z0-9]{20,}'), |||
+secret: github pat shape dropped ||| ('github-pat', rb'github_pat_[A-Za-z0-9_]{20,}'), |||
+secret: aws key shape dropped ||| ('aws-key', rb'AKIA[0-9A-Z]{16}'), |||
+secret: google key shape dropped ||| ('google-key', rb'AIza[0-9A-Za-z_-]{35}'), |||
+secret: private key block dropped ||| ('private-key', rb'-----BEGIN [A-Z ]*PRIVATE KEY-----'), |||
+secret: table R rows ignored ||| secret_rx += [('표의 비밀값 줄', rx) for cls, is_secret, rx in rows if is_secret] ||| secret_rx += []
+secret: table R flag not read ||| rows.append((cls, 'R' in flags, rx)) ||| rows.append((cls, False, rx))
+trace group off ||| hits = scan_lines(data, ctx['trace_rx']) ||| hits = {}
+trace: table flag i ignored ||| re.compile(pat.encode('utf-8'), re.IGNORECASE if 'i' in flags else 0) ||| re.compile(pat.encode('utf-8'), 0)
+trace: table rows not used ||| trace_rx = [(cls, rx) for cls, is_secret, rx in rows if not is_secret] ||| trace_rx = []
+length: persona size not checked ||| if len(text) > MAX_PERSONA_CHARS: ||| if False:
+length: capsule not checked ||| if len(body) > MAX_CAPSULE_LINES: ||| if False:
+length: CLAUDE.md size not checked ||| if cl is not None and len(text_of(cl)) > MAX_CLAUDE_CHARS: ||| if False:
+options: --skip ignored ||| if group in skip: ||| if False:
+options: --require-table ignored ||| if require: ||| if False:
+options: missing-table note dropped ||| elif 'trace' not in skip: ||| elif False:

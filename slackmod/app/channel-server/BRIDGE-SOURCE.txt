@@ -1,0 +1,6 @@
+bridge commit: e5d6bc94d8bdd573b940e412f4e12d85e578034e
+built dist/server.js sha256 (before scrub): 10ad2d7b9781eb53fc3e03cb82b370802dd02a2f3e9246d67cb5e55ada559702
+built dist/mcp.js sha256 (before scrub): ab65ed0989df4aba4955e11d0792ea4f898f738b8bae50c7e1caff4252792c84
+shipped dist/server.js sha256: b85a93359c4629fb9ac8e1cf6cb39433af5014b7420b3dc07aec0daaa85b863e
+shipped dist/mcp.js sha256: ab65ed0989df4aba4955e11d0792ea4f898f738b8bae50c7e1caff4252792c84
+expected by the bridge owner: none given

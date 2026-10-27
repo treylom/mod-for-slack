@@ -1,0 +1,39 @@
+{
+  "_help": "SlackMod 설정 1개. 이 파일을 ~/.slackmod/config.json 으로 복사해 X 자리와 폴더만 바꾼 뒤 install.sh 를 다시 실행하세요. Slack 토큰은 여기 넣지 않습니다(slackmod set-token <봇 이름>).",
+  "schema": 1,
+  "slack": {
+    "_help": "channel_id = 두 봇이 함께 있는 채널 ID(C 로 시작) · owner_user_id = 봇에게 말할 사람의 Slack 사용자 ID(U 로 시작) · drop_notice = 허용 안 된 봇이 이 봇을 부르면 그 스레드에 알림 · drop_notice_no_mention = 허용된 봇이 멘션 없이 쓰면 알림(같은 채널 30분 1통)",
+    "channel_id": "CXXXXXXXXXX",
+    "owner_user_id": "UXXXXXXXXXX",
+    "drop_notice": true,
+    "drop_notice_no_mention": true
+  },
+  "bots": [
+    {
+      "_help": "name = 켜기 이름(영문 소문자·숫자·-) · work_dir = 이 봇이 일하는 WSL 폴더(절대 경로) · slack_bot_user_id = 이 봇의 Slack 사용자 ID(봇끼리 @로 부를 때만 · 비워도 됨)",
+      "name": "chonggwal",
+      "work_dir": "/home/YOUR-WSL-USER/bots/chonggwal",
+      "slack_bot_user_id": "",
+      "model": ""
+    },
+    {
+      "name": "docbot",
+      "work_dir": "/home/YOUR-WSL-USER/bots/docbot",
+      "slack_bot_user_id": "",
+      "model": ""
+    }
+  ],
+  "aliases": {
+    "_help": "봇 하나씩 = 봇 name 그대로(예: chonggwal) · 한 번에 켜기·끄기 이름",
+    "all": "allbots",
+    "all_stop": "allbots-stop"
+  },
+  "permission": "skip",
+  "child": {
+    "_help": "하위 세션(스레드마다 열리는 tmux 창) 설정 · min_disk_free_gb = 디스크 여유가 이보다 적으면 하위 창을 안 엶",
+    "model": "sonnet",
+    "effort": "medium",
+    "min_disk_free_gb": 20,
+    "min_free_mem_pct": 15
+  }
+}

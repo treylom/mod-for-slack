@@ -1,0 +1,130 @@
+# doctor.sh mutants — one rule off each. Format: description ||| old ||| new
+# run: JOBS=8 bash setup/tests/mutate.sh setup/lib/doctor.sh DOCTOR setup/tests/doctor-mutants.txt setup/tests/doctor-test.sh
+summary: 건너뜀 count missing from the line ||| · 건너뜀 $N_SKIP" ||| "
+count: 건너뜀 not counted ||| 건너뜀) N_SKIP=$((N_SKIP + 1)) ;; ||| 건너뜀) ;;
+count: 주의 not counted ||| 주의) N_WARN=$((N_WARN + 1)) ;; ||| 주의) ;;
+strict: could-not-check gives 1 not 2 ||| if [ "$CANT" = 1 ]; then RC=2; ||| if [ "$CANT" = 1 ]; then RC=1;
+strict: warnings/failures give 0 ||| -gt 0 ]; then RC=1; fi ||| -gt 0 ]; then RC=0; fi
+strict: 건너뜀 counted as a problem ||| $((N_WARN + N_FAIL)) -gt 0 ||| $((N_WARN + N_FAIL + N_SKIP)) -gt 0
+guard: xox mask removed ||| s/xox[a-zA-Z]-[A-Za-z0-9-]+/xox?-(가림)/g; |||
+guard: xapp mask removed ||| s/xapp-[A-Za-z0-9-]+/xapp-(가림)/g; |||
+guard: sk-ant mask removed ||| s/sk-ant-[A-Za-z0-9_-]+/sk-ant-(가림)/g; |||
+guard: ghp mask removed ||| s/gh[pousr]_[A-Za-z0-9]{20,}/gh?_(가림)/g; |||
+guard: AKIA mask removed ||| ; s/AKIA[0-9A-Z]{16}/AKIA(가림)/g' ||| '
+guard: github_pat mask removed ||| s/github_pat_[A-Za-z0-9_]{20,}/github_pat_(가림)/g; |||
+skip: Slack-off choice ignored ||| if [ "$needslack" = slack ] && [ "$SLACK_OFF" = 1 ]; then ||| if false; then
+skip: setup.json slack=off not read ||| slack=off*) SLACK_OFF=1 ;; ||| slack=off*) SLACK_OFF=0 ;;
+skip: not-installed no longer 'could not check' ||| then CANT=1; cell 건너뜀 "[$n] $what: 설치가 안 보여 ||| then cell 건너뜀 "[$n] $what: 설치가 안 보여
+skip: zero bots reported as failure ||| else cell 건너뜀 "[$n] $what: 봇이 0개 ||| else cell 실패 "[$n] $what: 봇이 0개
+skip: broken bots.list fails in every cell ||| if [ "$n" = 3 ]; then cell 실패 ||| if true; then cell 실패
+tokens: missing token not reported ||| if [ -n "$miss" ]; then cell 실패 "[3] ||| if false; then cell 실패 "[3]
+tokens: shared app token not reported ||| elif [ -n "$dup" ]; then ||| elif false; then
+login: not-logged-in only a warning ||| elif [ "$li" = no ]; then cell 실패 ||| elif [ "$li" = no ]; then cell 주의
+login: api key ignored ||| elif [ "$ks" = key ] || [ "$am" = api_key ] || [ "$envkey" = 1 ]; then ||| elif false; then
+login: env api key ignored ||| [ -n "${ANTHROPIC_API_KEY:-}" ] && envkey=1 ||| envkey=0
+login: missing claude not a failure ||| if [ -z "$cl" ]; then cell 실패 "[2] Claude Code 가 없음" ||| if [ -z "$cl" ]; then cell 주의 "[2] Claude Code 가 없음"
+window: Orca env ignored ||| [ -n "${ORCA_TERMINAL_HANDLE:-}" ] && orca=1 ||| orca=0
+window: Orca socket path ignored ||| *orca-claude-agent-teams*) orca=1 ;; ||| *orca-claude-agent-teamz*) orca=1 ;;
+window: herdr-only not recognised ||| elif command -v herdr >/dev/null 2>&1; then ||| elif false; then
+window: no tool is only a warning ||| cell 실패 "[1] tmux 가 없음 ||| cell 주의 "[1] tmux 가 없음
+persona: secret in persona only a warning ||| then worst=실패; else [ "$worst" = OK ] && worst=주의; fi ||| then worst=주의; else [ "$worst" = OK ] && worst=주의; fi
+persona: imported bots checked as fresh ones ||| skip=""; [ "$src" = import ] && skip="required" ||| skip=""
+persona: missing folder not reported ||| if [ -z "$dir" ] || [ ! -d "$dir" ]; then ||| if false; then
+persona: check script missing not skipped ||| if [ -z "$PY" ] || [ ! -f "$PERSONA_CHECK" ]; then cell 건너뜀 ||| if false; then cell 건너뜀
+slack: auth error only a warning ||| 토큰이 틀리거나 막힘"; worst=실패 ||| 토큰이 틀리거나 막힘"; worst=주의
+slack: unreachable counted as OK ||| [ "$worst" = OK ] && worst=주의; fix="${fix:+$fix ; }인터넷 연결을 확인하고 다시 점검(회사망이면 slack.com 허용)" ||| fix="${fix:+$fix ; }인터넷 연결을 확인하고 다시 점검(회사망이면 slack.com 허용)"
+slack: bots without a bot token not skipped in [5] ||| PENDING|'') skipped= ||| PENDINGX|'') skipped=
+slack probe: blank bot token not seen as pending ||| if not tok_ok(bt, "xoxb-"): st = "PENDING" ||| if False: st = "PENDING"
+slack probe: channel check uses info not history ||| h = call("conversations.history", bot, bt, {"channel": prim(ch), "limit": "1"}) ||| h = call("conversations.info", bot, bt, {"channel": prim(ch), "limit": "1"})
+slack probe: history not limited to one message ||| {"channel": prim(ch), "limit": "1"} ||| {"channel": prim(ch)}
+slack probe: not_in_channel not mapped ||| elif e == "not_in_channel": st = "NOT_IN_CHANNEL" ||| elif False: st = "NOT_IN_CHANNEL"
+slack probe: channel_not_found not mapped ||| if e == "channel_not_found": st = "CH_NOT_FOUND:" + team ||| if False: st = "CH_NOT_FOUND:" + team
+slack probe: bearer header dropped ||| headers={"Authorization": "Bearer " + token} ||| headers={}
+slack probe: answer text not reduced to a word ||| def code(v): return v if isinstance(v, str) and re.fullmatch(r"[a-z_]{1,40}", v) else "unknown" ||| def code(v): return v if isinstance(v, str) else "unknown"
+G9 ①: channel_not_found branch off ||| CH_NOT_FOUND:*) ||| CH_NOT_FOUNX:*)
+G9 ①: wording carries branch ③ ||| one="$b ① 다른 워크스페이스(또는 비공개·미초대) ||| one="$b ③ 다른 워크스페이스(또는 비공개·미초대)
+G9 ①: workspace id of the bot not shown ||| team="${st#CH_NOT_FOUND:}"; [ "$team" = - ] && team="" || team="($team)" ||| team=""
+G9 ①: workspace id not taken from auth.test ||| team = a.get("team_id") if ||| team = a.get("teamx_id") if
+G9 ①: invite-first advice dropped ||| 비공개 채널이면 먼저 초대" ;; ||| 비공개 채널이면 확인" ;;
+G9 ②: pending branch off ||| PENDING) ||| PENDINX)
+G9 ②: wording carries branch ① ||| one="$b ② 관리자 승인 대기 꼴 — 봇 토큰이 없음 ||| one="$b ① 다른 워크스페이스 꼴 — 봇 토큰이 없음
+G9 ②: approval-request advice dropped ||| fix="${fix:+$fix ; }$b: 관리자에게 앱 승인 요청 · 승인 뒤 OAuth 화면의 Bot Token 을 slackmod set-token $b 으로 넣기" ;; ||| fix="${fix:+$fix ; }$b: 설치 다시 시도" ;;
+G9 ②: auth.test invalid_auth/revoked/inactive not mapped to ② ||| AUTH_ERR:invalid_auth|AUTH_ERR:token_revoked|AUTH_ERR:account_inactive) ||| AUTH_ERR:invalid_authx|AUTH_ERR:token_revokedx|AUTH_ERR:account_inactivex)
+G9 ②: token_revoked dropped from the ② set ||| |AUTH_ERR:token_revoked| ||| |AUTH_ERR:token_revokedx|
+G9 ②: account_inactive dropped from the ② set ||| |AUTH_ERR:account_inactive) ||| |AUTH_ERR:account_inactivex)
+G9 ②: re-issue-the-token advice dropped ||| slackmod set-token $b 으로 넣기 — 토큰을 다시 받으세요" ;; ||| slackmod set-token $b 으로 넣기" ;;
+G9 ③: not_in_channel branch off ||| NOT_IN_CHANNEL) ||| NOT_IN_CHANNEX)
+G9 ③: wording carries branch ② ||| one="$b ③ 손님 계정·채널 제한 — 봇이 채널에 없습니다 ||| one="$b ② 관리자 승인 대기 — 봇이 채널에 없습니다
+G9 ③: guest-account advice dropped ||| 손님 계정(멀티/싱글 채널 게스트)은 앱을 초대할 수 없으니 정회원이 초대" ;; ||| 초대" ;;
+G9 ③: organisation policy (ekm/restricted) not mapped ||| elif e in ("ekm_access_denied", "restricted_action"): st = "POLICY:" + e ||| elif False: st = "POLICY:" + e
+G9 ③: restricted_action dropped from the policy set ||| ("ekm_access_denied", "restricted_action") ||| ("ekm_access_denied",)
+G9 ③: ekm_access_denied dropped from the policy set ||| ("ekm_access_denied", "restricted_action") ||| ("restricted_action",)
+G9 ③: policy branch wording off ||| POLICY:*) ||| POLICYX:*)
+G9: missing_scope has no wording of its own ||| HIST_ERR:missing_scope) ||| HIST_ERR:missing_scopx)
+G9: branch failure only a warning ||| 안 보입니다(channel_not_found)"; lvl=실패 ||| 안 보입니다(channel_not_found)"; lvl=주의
+G9: worst level lost ||| case "$lvl" in 실패) worst=실패 ;; ||| case "$lvl" in 실패) ;;
+bots: bridge process not checked ||| || [ "$alive" = 0 ]; then ||| ; then
+bots: missing bridge file not checked ||| || [ "$sock" != 있음 ] |||
+bots: missing main window not checked ||| || [ "$hasm" = 0 ] |||
+bots: off bot not reported ||| if [ "$up" != 켜짐 ]; then ||| if false; then
+bots: bridge-log token error loses its set-token fix ||| 토큰이 틀리거나 막힘(${code}) → slackmod set-token $b 뒤 slackmod stop $b ; slackmod start $b" ;; ||| 다리 창 보기" ;;
+auth round trip: token error loses its set-token fix ||| fix="${fix:+$fix ; }slackmod set-token $b 뒤 slackmod stop $b ; slackmod start $b" ;; ||| fix="${fix:+$fix ; }창을 다시 열기" ;;
+bots: reconnecting treated as fine ||| "socket reconnecting") one="$one, 마지막 연결 줄 «socket reconnecting» $when"; [ "$worst" = OK ] && worst=주의 ||| "socket reconnecting") one="$one, 마지막 연결 줄 «socket reconnecting» $when"
+bots: no window tool not skipped ||| if ! command -v tmux >/dev/null 2>&1; then cell 건너뜀 "[9] ||| if false; then cell 건너뜀 "[9]
+bridges: outside bridge not failed ||| if [ $((bs + bo)) -gt 0 ]; then ||| if false; then
+hooks: dangling hook not a failure ||| if [ "$broken" -gt 0 ]; then ||| if false; then
+hooks: existing hook line not reported ||| elif [ "$tot" -gt 0 ]; then ||| elif false; then
+hooks: enabled plugin not reported ||| if [ "$np" -gt 0 ]; then ||| if false; then
+hooks: broken settings JSON not reported ||| if [ "$nbad" -gt 0 ]; then ||| if false; then
+windows: non-WSL not skipped ||| if ! is_wsl; then cell 건너뜀 ||| if false; then cell 건너뜀
+schedule: failing launchctl list not reported ||| elif to 15 launchctl list >/dev/null 2>&1; then ||| elif true; then
+channels: organisation switch not read ||| off = f if j["channelsEnabled"] is False else "" ||| off = ""
+channels: any falsy value counted as off ||| off = f if j["channelsEnabled"] is False else "" ||| off = f if not j["channelsEnabled"] else ""
+channels: drop-in folder not read ||| + sorted(glob.glob(os.path.join(d, "managed-settings.d", "*.json"))) |||
+channels: a later file cannot turn it back on ||| off = f if j["channelsEnabled"] is False else "" ||| off = off or (f if j["channelsEnabled"] is False else "")
+channels: unreadable managed file not reported ||| bad = bad or f ||| pass
+channels: organisation switch only a warning ||| lvl=실패; parts="④ 채널 기능 꺼짐 — 조직 관리자가 채널을 꺼 둠 ||| lvl=주의; parts="④ 채널 기능 꺼짐 — 조직 관리자가 채널을 꺼 둠
+channels: Bedrock dropped from the list ||| CH_HARD="CLAUDE_CODE_USE_BEDROCK CLAUDE_CODE_USE_VERTEX CLAUDE_CODE_USE_FOUNDRY" ||| CH_HARD="CLAUDE_CODE_USE_VERTEX CLAUDE_CODE_USE_FOUNDRY"
+channels: Vertex dropped from the list ||| CH_HARD="CLAUDE_CODE_USE_BEDROCK CLAUDE_CODE_USE_VERTEX CLAUDE_CODE_USE_FOUNDRY" ||| CH_HARD="CLAUDE_CODE_USE_BEDROCK CLAUDE_CODE_USE_FOUNDRY"
+channels: Foundry dropped from the list ||| CH_HARD="CLAUDE_CODE_USE_BEDROCK CLAUDE_CODE_USE_VERTEX CLAUDE_CODE_USE_FOUNDRY" ||| CH_HARD="CLAUDE_CODE_USE_BEDROCK CLAUDE_CODE_USE_VERTEX"
+channels: relay auth token dropped from the list ||| CH_SOFT="ANTHROPIC_AUTH_TOKEN ANTHROPIC_BASE_URL" ||| CH_SOFT="ANTHROPIC_BASE_URL"
+channels: relay base url dropped from the list ||| CH_SOFT="ANTHROPIC_AUTH_TOKEN ANTHROPIC_BASE_URL" ||| CH_SOFT="ANTHROPIC_AUTH_TOKEN"
+channels: relay login treated as failure ||| [ "$lvl" = OK ] && lvl=주의; parts="${parts:+$parts; }중계·대리 로그인이면 ||| lvl=실패; parts="${parts:+$parts; }중계·대리 로그인이면
+channels: environment variables not looked at ||| [ -n "$v" ] && out="${out:+$out }$n(환경 변수)" ||| :
+channels: window tool global environment not looked at ||| printf '%s\n' "$genv" | grep -qx "$n" && out="${out:+$out }$n(창 도구 전역 환경)" ||| :
+channels: settings env blocks not looked at ||| case "$blk" in *",$n,"*) out="${out:+$out }$n(설정 파일 env)" ;; esac ||| :
+channels: empty value counted as set ||| v="${!n-}" ||| v="x${!n-}"
+channels: bridge log trace not looked at ||| LC_ALL=C grep -qiE "$CH_TRACE"; then trace= ||| LC_ALL=C grep -qiE "ZZZ-never"; then trace=
+channels: bot screen trace not looked at ||| [ "${pane:-0}" -gt 0 ] && trace= ||| [ "${pane:-0}" -gt 999 ] && trace=
+channels: bot screen match is case sensitive ||| LC_ALL=C grep -ciE "$CH_TRACE")" ||| LC_ALL=C grep -cE "$CH_TRACE")"
+channels: «currently available» phrase dropped ||| CH_TRACE='Channels are not currently available|development-channels ignored' ||| CH_TRACE='development-channels ignored'
+channels: «development-channels ignored» phrase dropped ||| CH_TRACE='Channels are not currently available|development-channels ignored' ||| CH_TRACE='Channels are not currently available'
+channels: healthy banner counted as off (phrase widened) ||| CH_TRACE='Channels are not currently available|development-channels ignored' ||| CH_TRACE='Channels are not currently available|development-channels|no MCP server configured'
+channels: trace only a warning ||| lvl=실패; parts="${parts:+$parts; }④ 채널 기능 꺼짐 — «Channels ||| lvl=주의; parts="${parts:+$parts; }④ 채널 기능 꺼짐 — «Channels
+channels: worst level lost to a later warning ||| [ "$lvl" = OK ] && lvl=주의; parts="${parts:+$parts; }중계 ||| lvl=주의; parts="${parts:+$parts; }중계
+channels: Slack-off not skipped ||| why_skip 12 "채널 기능" slack && return ||| why_skip 12 "채널 기능" && return
+channels: cell not run ||| check_channels() { ||| check_channelx() {
+channels: managed folder override ignored ||| if [ -n "${SLACKMOD_DOCTOR_MANAGED_DIR:-}" ]; then mgd= ||| if false; then mgd=
+utf8: token list written with a bare name before the middle dot ||| list="${list:+$list, }$b ${bt}·${at}" ||| list="${list:+$list, }$b $bt·$at"
+utf8: token case written with bare names before the middle dot ||| case "${bt}·${at}" in set·set) ;; ||| case "$bt·$at" in set·set) ;;
+utf8: auth error text written with a bare name before the guillemet (invalid_auth family) ||| auth.test 가 «${code}» — 토큰이 틀리거나 막힘" ||| auth.test 가 «$code» — 토큰이 틀리거나 막힘"
+utf8: auth error text written with a bare name before the guillemet (other errors) ||| auth.test 가 «${code}» 라고 답함" ||| auth.test 가 «$code» 라고 답함"
+K19: folder-trust screen not seen ||| *"Yes, I trust this folder"*) fs="폴더 신뢰" ;; |||
+K19: bypass warning not seen ||| *"Yes, I accept"*) fs="권한 건너뛰기 경고" ;; |||
+K19: dev-channels confirm not seen ||| *"I am using this for local development"*) fs="개발 채널 확인" ;; |||
+K19: a parked bot window is not a failure ||| 에서 기다림 — Slack 글에 답 못 함"; worst=실패 ||| 에서 기다림 — Slack 글에 답 못 함"
+K19b: «New MCP server» screen not seen ||| *"New MCP server found"*) fs="MCP 서버 승인" ;;   # K19b: a .mcp.json server the kit did not add (its own is pre-approved) |||
+K22: the channel value read whole again (no comma split) |||     ids = [x.strip() for x in (raw or "").split(",") if x.strip()] |||     ids = [raw] if raw else []
+K22: «*» accepted as the primary |||     return p if re.fullmatch(r"[CG][A-Z0-9]{6,20}", p) and "XXXX" not in p else "" |||     return p if (p == "*" or re.fullmatch(r"[CG][A-Z0-9]{6,20}", p)) and "XXXX" not in p else ""
+K24: the bot folder no longer overrides the account |||         eff.update(plug(a[i])); i += 1 |||         eff = {**plug(a[i]), **eff}; i += 1
+K24: telegram dropped from the channel plugin list ||| KEYS = ("telegram", "discord", "imessage", "fakechat") ||| KEYS = ("discord", "imessage", "fakechat")
+K24: any marketplace's «telegram» counted |||             if m == "claude-plugins-official" and n in KEYS: out[n] = v |||             if n in KEYS: out[n] = v
+K24a′: a bot's extra_channels ignored |||         if eff.get(n) is True and "plugin:%s@claude-plugins-official" % n not in meant: |||         if eff.get(n) is True:
+K24a′: any source in extra_channels excuses the official plugin |||         if eff.get(n) is True and "plugin:%s@claude-plugins-official" % n not in meant: |||         if eff.get(n) is True and not any(m.startswith("plugin:%s@" % n) for m in meant):
+sec ⑬: launch.sh sourced again (a symlinked or edited launch.sh runs in the read-only doctor) ||| "$PY" -I -B -c "$PY_LAUNCH" "$f" "$2" 2>/dev/null ||| ( . "$f" >/dev/null 2>&1; printf '%s' "${!2:-}" )
+sec ⑪: mcp.js with arguments after it counts as a relay again (the file name excuses the real server) ||| return re.search(r"dist/mcp\.js$", args.rstrip()) is not None and "dist/server.js" not in args ||| return re.search(r"dist/mcp\.js", args) is not None and "dist/server.js" not in args
+sec ⑪: a line with server.js plus an mcp.js argument counts as a relay ||| return re.search(r"dist/mcp\.js$", args.rstrip()) is not None and "dist/server.js" not in args ||| return re.search(r"dist/mcp\.js$", args.rstrip()) is not None
+10-26 [13]: a pass.sh whose sha no longer matches its pin reads as fine ||| bad.append("확인 값이 안 맞음: %s 의 %s" % (b, name)); fix = "다시 맞추기 = " + hint ||| nok += 1
+10-26 [13]: a group-writable pinned file reads as fine ||| if st.st_mode & 0o022: ||| if False:
+10-26 [13]: only sourcePath/sourceSha256 is read (a stale directionSha256 passes) ||| pins = [(o[k], o[k[:-4] + "Sha256"]) for k in sorted(o) if k.endswith("Path") and isinstance(o[k], str) and isinstance(o.get(k[:-4] + "Sha256"), str)] ||| pins = [(o["sourcePath"], o["sourceSha256"])] if isinstance(o.get("sourcePath"), str) and isinstance(o.get("sourceSha256"), str) else []
+10-26 [13]: a missing pinned file is skipped silently ||| bad.append("고정 파일이 없음: %s 의 %s" % (b, name)); fix = fix or "다시 맞추기 = " + hint; continue ||| continue

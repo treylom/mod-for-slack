@@ -1,0 +1,9 @@
+{
+  "name": "mods-harness",
+  "version": "0.0.1",
+  "description": "Claude Code mod harness: per-thread child sessions, mod UI, hooks as mod events.",
+  "author": {
+    "name": "mods-harness contributors"
+  },
+  "types": "./types/index.d.ts"
+}

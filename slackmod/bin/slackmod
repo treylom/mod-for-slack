@@ -1,0 +1,511 @@
+#!/usr/bin/env bash
+# slackmod — SlackMod 봇 켜기 · 끄기 · 상태 (install.sh 가 ~/.slackmod/bin 에 둔다)
+#   slackmod start <봇|all> [--force] [--backend auto|tmux|herdr]
+#                                       봇 켜기 (tmux 세션 = 봇 이름 · 창 bridge = Slack 다리 · 창 main = 봇)
+#                                       herdr = 작업공간 하나(이름 = 봇) · 탭 bridge · 탭 main · 하위 세션 = 같은 작업공간의 탭
+#                                       auto(기본) = herdr 칸 안(HERDR_ENV=1 · TMUX 없음)이면 herdr · 그 밖 tmux
+#   slackmod stop <봇|all>              봇 끄기 (그 봇의 하위 세션 창도 같이 닫힘 · herdr 작업공간도)
+#   slackmod status                     봇마다 켜짐 · 다리 · 토큰 · 하위 창 수
+#   slackmod set-token <봇>             Slack 토큰 2개 입력(화면에 안 보임 · 0600 파일에만)
+#   slackmod set-judge-key <봇>         하위 라우터의 동봉 판정기 키 입력(화면에 안 보임 · 봇 slack 폴더의 route-judge.key 0600 파일에만 · 봇 환경엔 안 들어감)
+#   slackmod check-windows              WSL 에서 Windows 쪽 Slack 다리가 켜져 있는지 확인(같은 앱 두 곳 = 메시지 갈림)
+#   slackmod attach <봇>                그 봇 화면으로 들어가기 (나오기 = Ctrl+b 뗀 뒤 d)
+#   slackmod open <봇> [--force]        봇 이름 명령: 켜져 있으면 그 봇 세션만 끄고 → 새 대화로 켜고 → 들어가기
+#                                       (봇 창 안 · 터미널 아님 = 아무것도 안 함 · 켠 직후 30초쯤 온 Slack 글은 다시 보내 주세요)
+set -uo pipefail
+ROOT="${SLACKMOD_ROOT:-$HOME/.slackmod}"
+SELF="$ROOT/bin/slackmod"
+PY="$(command -v python3 || true)"
+CFG=("$PY" -I "$ROOT/lib/slackmod_config.py")
+
+die() { echo "slackmod: $*" >&2; exit "${RC:-1}"; }
+bots() { [ -f "$ROOT/bots.list" ] || die "설치가 안 됐습니다 — install.sh 먼저"; cat "$ROOT/bots.list"; }
+known() { bots | grep -qx -- "$1"; }
+load() { # load <bot> → SM_* 변수
+  known "$1" || die "모르는 봇: $1 (있는 봇: $(bots | tr '\n' ' '))"
+  # shellcheck disable=SC1090
+  . "$ROOT/bots/$1/launch.sh"
+}
+targets() { if [ "${1:-}" = all ]; then bots; elif [ -n "${1:-}" ]; then echo "$1"; else die "봇 이름(또는 all)을 주세요"; fi; }
+new_uuid() {
+  if [ -r /proc/sys/kernel/random/uuid ]; then cat /proc/sys/kernel/random/uuid
+  elif command -v uuidgen >/dev/null 2>&1; then uuidgen | tr '[:upper:]' '[:lower:]'
+  else "$PY" -c 'import uuid; print(uuid.uuid4())'; fi
+}
+is_wsl() { grep -qi microsoft /proc/version 2>/dev/null; }
+
+# ── herdr (10-25 창 어댑터 · 발주 A): 봇 = herdr 작업공간 하나(label = 봇) · 탭 bridge · 탭 main · 그 안의 mods 하위 =
+# 같은 작업공간의 탭(mods src/lib/window/herdr.js). herdr 의 tab/workspace create 엔 «실행할 명령» 칸이 없어 짧은 줄 하나를
+# pane run 으로 넣는다(셸이 막 뜰 때 1024바이트 넘는 줄은 herdr 가 거부 — 실측 · 이 줄은 100바이트 안팎).
+HB="${HERDR_BIN_PATH:-herdr}"
+sq() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"; }   # 한 단어 = 작은따옴표 한 벌
+pick_backend() { # pick_backend <auto|tmux|herdr> → tmux | herdr
+  case "$1" in
+    tmux|herdr) echo "$1" ;;
+    *) if [ "${HERDR_ENV:-}" = 1 ] && [ -z "${TMUX:-}" ]; then echo herdr; else echo tmux; fi ;;
+  esac
+}
+have_herdr() { command -v "$HB" >/dev/null 2>&1; }
+herdr_ws() { # herdr_ws <봇> → 그 봇 작업공간 id(없으면 빈 줄) · rc 2 = herdr 가 답하지 않음
+  local out
+  out="$("$HB" workspace list 2>/dev/null)" || return 2
+  printf '%s' "$out" | "$PY" -I -c 'import json, sys
+try:
+    j = json.load(sys.stdin)
+except Exception:
+    sys.exit(2)
+if "error" in j: sys.exit(2)
+print(next((w.get("workspace_id", "") for w in j.get("result", {}).get("workspaces", []) if w.get("label") == sys.argv[1]), ""))' "$1"
+}
+herdr_new() { # stdin = workspace create / tab create 의 답 → "<pane> <workspace> <tab>" (못 읽으면 빈 줄)
+  "$PY" -I -c 'import json, sys
+try:
+    p = json.load(sys.stdin)["result"]["root_pane"]; print(p["pane_id"], p["workspace_id"], p["tab_id"])
+except Exception:
+    print("")'
+}
+herdr_kids() { # herdr_kids <작업공간 id> → bridge·main 아닌 탭 수
+  "$HB" tab list --workspace "$1" 2>/dev/null | "$PY" -I -c 'import json, sys
+try:
+    t = json.load(sys.stdin)["result"]["tabs"]
+except Exception:
+    t = []
+print(sum(1 for x in t if x.get("label") not in ("bridge", "main")))'
+}
+
+herdr_up() { # herdr_up <봇> → 그 봇 herdr 작업공간 id 를 내고 rc 0 · 없음/herdr 없음/무응답 = rc 1 (tmux 쪽 «이미 켜짐» 점검용)
+  local w
+  have_herdr || return 1
+  w="$(herdr_ws "$1" 2>/dev/null)" || return 1
+  [ -n "$w" ] || return 1
+  echo "$w"
+}
+
+# ── K20 (G10 10-25): what a bridge leaves when it dies without cleaning up. A lost multiplexer server kills it with SIGHUP,
+# and the bridge cleans up only on SIGINT/SIGTERM — so primary.pid and primary.sock stay. After a reboot that pid can name
+# another live process, and the bridge then refuses to start («another claude-channel-server is already running»); a socket
+# file nobody listens on makes start's «wait for the bridge» end at once. The kit clears both — the bridge itself is unchanged.
+sock_answers() { # → 0 when something accepts a connection on primary.sock (a bridge listening there)
+  [ -S "$SM_SLACK_DIR/primary.sock" ] && [ -n "$PY" ] || return 1
+  "$PY" -I -c 'import socket,sys
+s = socket.socket(socket.AF_UNIX); s.settimeout(1)
+try:
+    s.connect(sys.argv[1])
+except OSError:
+    sys.exit(1)
+s.close()' "$SM_SLACK_DIR/primary.sock" 2>/dev/null
+}
+sock_dead() { # → 0 when primary.sock exists and nothing answers on it (no python = cannot tell = keep it)
+  [ -S "$SM_SLACK_DIR/primary.sock" ] && [ -n "$PY" ] || return 1
+  ! sock_answers
+}
+bridge_pid_live() { # → 0 when primary.pid is THIS bot's live bridge: a channel-server process AND this bot's socket answers.
+  # The socket half matters with several bots: after a reboot a stale pid can name ANOTHER bot's new bridge (also a
+  # channel-server) — its pid file must still go, or this bot's bridge refuses to start.
+  local p; p="$(tr -dc 0-9 < "$SM_SLACK_DIR/primary.pid" 2>/dev/null | head -c 10)"
+  [ -n "$p" ] && ps -p "$p" -o command= 2>/dev/null | grep -q 'channel-server' || return 1
+  [ -n "$PY" ] || return 0
+  sock_answers
+}
+clear_dead_bridge_files() { # before a bridge starts: a pid file that is not this bot's live bridge · a socket nobody answers on
+  if [ -f "$SM_SLACK_DIR/primary.pid" ] && ! bridge_pid_live; then
+    echo "[slackmod] 꺼진 다리가 남긴 pid 파일을 정리했습니다(pid $(tr -dc 0-9 < "$SM_SLACK_DIR/primary.pid" 2>/dev/null | head -c 10) · 이 봇의 살아 있는 다리 아님)"
+    rm -f "$SM_SLACK_DIR/primary.pid"
+  fi
+  if sock_dead; then rm -f "$SM_SLACK_DIR/primary.sock"; fi
+}
+
+start_herdr() { # start_one 의 점검(토큰 · 앱 · Windows 쪽 다리)을 지난 뒤
+  local bot="$1" ws="" out pane tab i=0
+  # 만든 뒤의 단계가 실패하면 그 작업공간을 닫고 끝낸다 — 남겨 두면 다음 start 가 «이미 켜짐»으로 보고 다리 없이 멈춤
+  # (검증 10-25 #2) · 작업공간 create 가 0 으로 답했는데 못 읽으면 이름(= 봇)으로 다시 찾아 닫는다
+  undo() {
+    [ -n "$ws" ] || ws="$(herdr_ws "$bot" 2>/dev/null)" || ws=""
+    [ -n "$ws" ] && "$HB" workspace close "$ws" >/dev/null 2>&1
+    RC=9 die "$bot: $1 — 만들던 herdr 작업공간은 닫았습니다"
+  }
+  have_herdr || RC=10 die "$bot: herdr 가 없습니다(--backend herdr) — herdr 를 깔거나 tmux 로 켜세요: slackmod start $bot --backend tmux"
+  if command -v tmux >/dev/null 2>&1 && tmux has-session -t "=$bot" 2>/dev/null; then
+    echo "$bot: 이미 tmux 에서 켜져 있습니다 · 보기: tmux attach -t $bot (같은 봇 두 곳 = Slack 메시지 갈림)"
+    return 0
+  fi
+  ws="$(herdr_ws "$bot")" || RC=10 die "$bot: herdr 서버가 답하지 않습니다 — herdr 를 먼저 켜고 그 안에서 다시: slackmod start $bot --backend herdr"
+  if [ -n "$ws" ]; then
+    echo "$bot: 이미 켜져 있습니다 · herdr 작업공간 $bot ($ws)"
+    return 0
+  fi
+  [ -d "$SM_WORK_DIR" ] || RC=8 die "$bot: 작업 폴더가 없습니다: $SM_WORK_DIR"
+  clear_dead_bridge_files
+  out="$("$HB" workspace create --cwd "$SM_SLACK_DIR" --label "$bot" --no-focus 2>/dev/null)"; local crc=$?
+  ws=""; read -r pane ws tab <<< "$(printf '%s' "$out" | herdr_new)"
+  if [ -z "${pane:-}" ]; then
+    ws=""
+    [ $crc -eq 0 ] && undo "herdr 작업공간 답을 못 읽음: $(printf '%s' "$out" | head -c 300)"
+    RC=9 die "$bot: herdr 작업공간을 못 만듦: $(printf '%s' "$out" | head -c 300)"
+  fi
+  "$HB" tab rename "$tab" bridge >/dev/null 2>&1 || true
+  "$HB" pane run "$pane" " exec $(sq "$SELF") _run-bridge $(sq "$bot")" >/dev/null 2>&1 || undo "다리 탭에 명령을 못 넣음(pane run $pane)"
+  while [ ! -S "$SM_SLACK_DIR/primary.sock" ] && [ $i -lt 30 ]; do sleep 0.5; i=$((i + 1)); done
+  if [ ! -S "$SM_SLACK_DIR/primary.sock" ]; then
+    echo "$bot: Slack 다리가 15초 안에 안 떴습니다. 기록 끝 몇 줄:"
+    tail -5 "$SM_SLACK_DIR/server.log" 2>/dev/null | sed 's/^/    /'
+    echo "  (보기: herdr 작업공간 $bot · 탭 bridge)"
+  fi
+  out="$("$HB" tab create --workspace "$ws" --cwd "$SM_WORK_DIR" --label main --no-focus 2>/dev/null)"
+  local mws=""; read -r pane mws tab <<< "$(printf '%s' "$out" | herdr_new)"
+  [ -n "${pane:-}" ] || undo "herdr main 탭을 못 만듦: $(printf '%s' "$out" | head -c 300)"
+  "$HB" pane run "$pane" " exec $(sq "$SELF") _run-main $(sq "$bot")" >/dev/null 2>&1 || undo "main 탭에 명령을 못 넣음(pane run $pane)"
+  echo "$bot: 켜졌습니다 · herdr 작업공간 $bot (탭 bridge · main) — 하위 세션은 같은 작업공간의 탭으로 열립니다"
+  echo "  처음 켤 때 main 탭에 확인 화면이 뜹니다 — herdr 에서 작업공간 $bot 의 main 탭을 골라:"
+  echo "    폴더 신뢰 · 권한 건너뛰기 경고 = 처음 한 번 · 아래 화살표로 «Yes» → Enter (그냥 Enter = 봇 꺼짐)"
+  echo "    개발 채널 확인 = 켤 때마다 · «1» 고른 채 Enter"
+}
+
+where_word() { case "$(uname -s 2>/dev/null)" in Darwin) echo "이 맥" ;; Linux) echo "이 리눅스" ;; *) echo "이 컴퓨터" ;; esac; }
+cwd_of() { # the folder a process runs in (Linux: /proc · macOS: lsof) — empty when unknown
+  local p
+  p="$(readlink "/proc/$1/cwd" 2>/dev/null || true)"
+  [ -n "$p" ] || p="$(lsof -a -p "$1" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p' | head -1 || true)"
+  printf '%s' "$p"
+}
+# sec ⑪ round 3 (security review 10-26): EXACT shapes only — the two ways these processes are really started, both two words:
+#   relay = «<node> …/dist/mcp.js» (mcp.json: command node + one argument · «npm run mcp» = node dist/mcp.js · all 17 relays on the
+#   build Mac 10-26) · ours = «<node> $ROOT/app/channel-server/dist/server.js|mcp.js» (slackmod _run-bridge · the bot's mcp.json).
+#   Node flags first, a wrapper, «node -e», any extra word = not a relay and not ours. Same rule in doctor.sh [7].
+node_word() { case "${1##*/}" in node|nodejs) return 0 ;; esac; return 1; }
+relay_line() {
+  local -a t; read -r -a t <<< "$1"
+  [ "${#t[@]}" -eq 2 ] && node_word "${t[0]}" && case "${t[1]}" in */dist/mcp.js|dist/mcp.js) true ;; *) false ;; esac
+}
+ours_line() {
+  local -a t; read -r -a t <<< "$1"
+  [ "${#t[@]}" -eq 2 ] && node_word "${t[0]}" && case "${t[1]}" in "$ROOT/app/channel-server/dist/server.js"|"$ROOT/app/channel-server/dist/mcp.js") true ;; *) false ;; esac
+}
+other_bridges() { # this computer: Slack bridges NOT started from ~/.slackmod → count. Two shapes: ① a command line naming the bridge
+  # (…claude-channel-server… · …channel-server/dist/server.js) ② the standalone / systemd shape «node … dist/server.js» whose folder is a channel-server one
+  # K21 (10-25): «…/dist/mcp.js» = the relay an old bot window runs — no Slack connection of its own (bridge mcp.ts:2-4),
+  # so it is not a bridge: counted apart («n r» out) and said, never a reason to refuse start
+  local n=0 r=0 pid args cwd
+  while read -r pid args; do
+    [ -n "$pid" ] || continue
+    # sec ⑪ r3: no «grep» skip — a process can call itself grep (argv[0]); a grep whose pattern names the bridge is counted (safe side)
+    ours_line "$args" && continue
+    # sec ⑪: a relay = relay_line (the script word is dist/mcp.js and is the last word) · anything else naming the bridge = a bridge.
+    # Same rule in doctor.sh [7].
+    case "$args" in *channel-server*dist/mcp.js*) relay_line "$args" && { r=$((r + 1)); continue; } ;; esac
+    case "$args" in
+      *claude-channel-server*|*channel-server/dist/server.js*|*channel-server*dist/mcp.js*) n=$((n + 1)) ;;
+      *node*dist/server.js*|*node*dist/mcp.js*) cwd="$(cwd_of "$pid")"
+        case "$cwd" in *channel-server*) if relay_line "$args"; then r=$((r + 1)); else n=$((n + 1)); fi ;; esac ;;
+    esac
+  done < <(ps -eo pid=,args= 2>/dev/null)
+  echo "$n $r"
+}
+
+check_windows() { # rc 0 = 안 보임 · 1 = 보임 · 2 = 확인 못 함 / WSL 아님
+  local here relays
+  read -r here relays < <(other_bridges)
+  if [ "${relays:-0}" -gt 0 ]; then
+    echo "참고: $(where_word) 안에 옛 봇 창의 Slack 중계 부품(mcp.js) ${relays}개가 있습니다 — 다리 본체가 아니라 메시지가 갈리지는 않습니다(그 창은 Slack 을 못 받음 · 안 쓰면 그 창을 닫으세요)."
+  fi
+  if [ "${here:-0}" -gt 0 ]; then
+    echo "$(where_word) 안에 SlackMod 밖에서 켠 Slack 다리 ${here}개가 돌고 있습니다(예: 예전 방식으로 켠 봇 · systemd 로 켠 다리)."
+    echo "같은 Slack 앱이면 메시지가 갈립니다 — 그 봇을 먼저 끄세요(ps -eo pid,args | grep channel-server 로 확인)."
+    echo "그 봇이 다른 Slack 앱인 게 확실하면: slackmod start <봇> --force"
+    return 1
+  fi
+  is_wsl || { echo "WSL 이 아니라 Windows 쪽은 확인할 것 없음 · 이 기계의 다른 Slack 다리 없음"; return 2; }
+  local ps
+  ps="$(command -v powershell.exe 2>/dev/null || true)"
+  [ -n "$ps" ] || ps=/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe
+  if [ ! -x "$ps" ]; then
+    echo "Windows 쪽을 확인 못 함(WSL 에서 Windows 명령을 부를 수 없음) — Windows 작업 관리자에서 node.exe · Slack 다리 창을 직접 확인해 끄세요"
+    return 2
+  fi
+  local out n
+  out="$("$ps" -NoProfile -NonInteractive -Command "Get-CimInstance Win32_Process -Filter \"Name='node.exe' or Name='claude.exe'\" | ForEach-Object { \$_.CommandLine }" 2>/dev/null | tr -d '\r')"
+  n="$(printf '%s\n' "$out" | grep -ci -e 'claude-channel-server' -e 'slack-channel' || true)"
+  if [ "${n:-0}" -gt 0 ]; then
+    echo "Windows 쪽에 Slack 다리로 보이는 프로세스 ${n}개가 켜져 있습니다."
+    echo "같은 Slack 앱을 Windows 와 WSL 두 곳에서 켜면 Slack 이 메시지를 두 곳에 나눠 보냅니다(한쪽은 못 받음)."
+    echo "Windows 쪽 봇 창(배치 파일로 연 창)을 먼저 닫으세요. 다른 앱이 확실하면: slackmod start <봇> --force"
+    return 1
+  fi
+  echo "Windows 쪽 Slack 다리 안 보임 (node.exe · claude.exe 명령줄 확인)"
+  return 0
+}
+
+start_one() {
+  local bot="$1" force="$2" backend="${3:-tmux}" st app other
+  load "$bot"
+  st="$("${CFG[@]}" env-status --file "$SM_SLACK_DIR/.env")"
+  case "$st" in *missing*) RC=5 die "$bot: Slack 토큰이 아직 없습니다 → slackmod set-token $bot" ;; esac
+  app="$("${CFG[@]}" app-id --file "$SM_SLACK_DIR/.env")"
+  for other in $(bots); do
+    [ "$other" = "$bot" ] && continue
+    if [ "$("${CFG[@]}" app-id --file "$ROOT/bots/$other/slack/.env")" = "$app" ]; then
+      RC=6 die "$bot 와 $other 가 같은 Slack 앱 토큰을 씁니다 — 봇마다 Slack 앱을 따로 만들어야 메시지가 안 갈립니다"
+    fi
+  done
+  if [ "$force" != 1 ]; then
+    check_windows >/dev/null; [ $? -eq 1 ] && { check_windows; RC=7 die "$bot: 켜지 않았습니다(위 안내 확인)"; }
+  fi
+  if [ "$backend" = herdr ]; then start_herdr "$bot"; return $?; fi
+  # 같은 봇이 herdr 에서 이미 돌면 tmux 로 또 켜지 않는다 — 다리 두 개 = Slack 메시지 갈림(검증 10-25 #1)
+  local hw
+  if hw="$(herdr_up "$bot")"; then
+    echo "$bot: 이미 herdr 에서 켜져 있습니다 · 작업공간 $bot ($hw) — 같은 봇 두 곳 = Slack 메시지 갈림 · 끄기: slackmod stop $bot"
+    return 0
+  fi
+  if tmux has-session -t "=$bot" 2>/dev/null; then
+    echo "$bot: 이미 켜져 있습니다 · 보기: tmux attach -t $bot"
+    return 0
+  fi
+  [ -d "$SM_WORK_DIR" ] || RC=8 die "$bot: 작업 폴더가 없습니다: $SM_WORK_DIR"
+  clear_dead_bridge_files
+  tmux new-session -d -s "$bot" -n bridge -c "$SM_SLACK_DIR" "$SELF _run-bridge $bot" || RC=9 die "$bot: tmux 세션을 못 만듦"
+  local i=0
+  while [ ! -S "$SM_SLACK_DIR/primary.sock" ] && [ $i -lt 30 ]; do sleep 0.5; i=$((i + 1)); done
+  if [ ! -S "$SM_SLACK_DIR/primary.sock" ]; then
+    echo "$bot: Slack 다리가 15초 안에 안 떴습니다. 기록 끝 몇 줄:"
+    tail -5 "$SM_SLACK_DIR/server.log" 2>/dev/null | sed 's/^/    /'
+    echo "  (창 보기: tmux attach -t $bot · 창 bridge)"
+  fi
+  tmux new-window -d -t "=$bot:" -n main -c "$SM_WORK_DIR" "$SELF _run-main $bot" || RC=9 die "$bot: 봇 창을 못 만듦"
+  tmux select-window -t "=$bot:main"   # -d above left «bridge» current — a plain attach would show the bridge log, not the bot
+  echo "$bot: 켜졌습니다 · 보기: tmux attach -t $bot (창 main)"
+  first_screens "$bot"
+}
+
+# 처음 켜기 확인 화면(실측 2026-10-25 · 새 Claude Code): ① 폴더 신뢰 ② «Bypass Permissions mode» 경고 — 커서가 «No, exit» 에서
+# 시작(그냥 Enter = 꺼짐) · 한 번 고르면 기억 · ③ 개발 채널 확인 — 켤 때마다. 봇 창은 붙지 않은(detached) 창이라 사람이 못 본다.
+# ③ = 이 키트의 Slack 연결(승인 목록 밖 채널) 때문에 매번 묻는 것 → «로컬 개발 용도»를 대신 고른다(SLACKMOD_NO_AUTO_DEVCHANNEL=1
+# 이면 안 고름). ①② = 안전 동의라 대신 고르지 않는다 — 들어가서 고르라고 알린다. SLACKMOD_SCREEN_WAIT = 지켜볼 초(기본 40 · 0 = 안 봄).
+first_screens() {
+  local bot="$1" wait="${SLACKMOD_SCREEN_WAIT:-40}" i=0 scr pressed=0
+  case "$wait" in ''|*[!0-9]*) wait=40 ;; esac
+  if [ "$wait" = 0 ]; then
+    echo "  처음 켤 때 봇 창에 확인 화면이 뜹니다: 폴더 신뢰 · 권한 건너뛰기 경고 = 처음 한 번 · 개발 채널 확인 = 켤 때마다"
+    echo "  보고 고르기: slackmod attach $bot (처음 둘은 아래 화살표로 «Yes» → Enter · 나오기 Ctrl+b 뗀 뒤 d)"
+    return 0
+  fi
+  while [ $i -lt "$wait" ]; do
+    scr="$(tmux capture-pane -p -t "=$bot:main" 2>/dev/null)"
+    case "$scr" in
+      *"Yes, I trust this folder"*|*"Yes, I accept"*)
+        echo "  처음 켜기 확인이 봇 창에 떠 있습니다(폴더 신뢰 · 권한 건너뛰기 경고 — 처음 한 번만 묻습니다)."
+        echo "  들어가서 «Yes» 를 고르세요: slackmod attach $bot → 아래 화살표 → Enter (그냥 Enter = «No, exit» = 봇이 꺼짐)"
+        echo "  그 뒤 «개발 채널» 확인이 오면 Enter · 나오기 = Ctrl+b 뗀 뒤 d"
+        return 0 ;;
+      *"New MCP server found"*)
+        # a server in the bot folder's .mcp.json that the kit did not add (the kit pre-approves its own playwright entry)
+        echo "  MCP 서버 승인 화면이 봇 창에 떠 있습니다(봇 폴더 .mcp.json 의 서버 — 그 서버가 코드를 실행할 수 있어 묻습니다)."
+        echo "  쓰려면: slackmod attach $bot → 위 화살표로 «Use this MCP server» → Enter (그냥 Enter = 그 서버 없이 계속)"
+        return 0 ;;
+      *"I am using this for local development"*)
+        if [ "${SLACKMOD_NO_AUTO_DEVCHANNEL:-0}" = 1 ]; then
+          echo "  개발 채널 확인이 봇 창에 떠 있습니다 (켤 때마다) — slackmod attach $bot 로 들어가 «1» 을 고른 채 Enter"
+          return 0
+        fi
+        # the dialog is drawn a moment before claude reads keys (a key sent at once is lost — measured 10-25) → settle 1 s ·
+        # still there 2 s later = press again (3 at most, then leave it to the person)
+        if [ "$pressed" -ge 3 ]; then
+          echo "  개발 채널 확인을 3번 골랐는데 그대로입니다 — slackmod attach $bot 로 들어가 Enter"
+          return 0
+        fi
+        sleep 1
+        tmux send-keys -t "=$bot:main" Enter
+        [ "$pressed" = 0 ] && echo "  개발 채널 확인(켤 때마다) = «로컬 개발 용도»로 대신 골랐습니다 — 이 키트의 Slack 연결은 승인 목록 밖 채널이라 매번 묻습니다 (대신 고르지 않기: SLACKMOD_NO_AUTO_DEVCHANNEL=1)"
+        pressed=$((pressed + 1))
+        sleep 2; i=$((i + 3)); continue ;;
+      *"Claude Max"*|*"Claude Pro"*|*"Claude Team"*|*"Claude Enterprise"*|*"API Usage Billing"*|*"? for shortcuts"*|*"bypass permissions on"*)
+        return 0 ;;
+    esac
+    sleep 1; i=$((i + 1))
+  done
+  echo "  (봇 창이 ${wait}초 안에 준비 화면을 안 보였습니다 — 확인: slackmod attach $bot)"
+  return 0
+}
+
+run_bridge() {
+  load "$1"
+  export CLAUDE_CHANNEL_SLACK_DIR="$SM_SLACK_DIR"
+  echo "[slackmod] $1 Slack 다리 — 이 창을 닫으면 Slack 메시지가 안 들어옵니다"
+  clear_dead_bridge_files      # K20: also here — «stop; start» and a hand-run bridge go through this line too
+  "$SM_NODE" "$SM_SERVER_JS" 2>&1 | tee -a "$SM_SLACK_DIR/server.log"
+  echo "[slackmod] 다리가 꺼졌습니다. 다시 켜기: slackmod stop $1 ; slackmod start $1"
+  exec "${SHELL:-bash}"
+}
+
+print_main() { # the launch line, without starting anything (the built-in env values here are not secrets)
+  load "$1"
+  local sid; sid=00000000-0000-4000-8000-000000000000
+  main_args "$sid"
+  printf 'cd %q\n' "$SM_WORK_DIR"
+  printf 'env MODS_HARNESS_BOT=%q MODS_HARNESS_SESSION_ID=%q MODS_HARNESS_CONFIG=%q DISABLE_AUTOUPDATER=1' "$SM_BOT" "$sid" "$SM_HARNESS_CONFIG"
+  printf ' \\\n  %q' "$SM_CLAUDE"
+  printf ' %q' "${args[@]}"; printf '\n'
+  # config bots[].extra_env (also the secret-looking ones): variable NAMES only — a screen never shows their values
+  local kv names=""
+  for kv in ${SM_EXTRA_ENV[@]+"${SM_EXTRA_ENV[@]}"}; do names="$names ${kv%%=*}"; done
+  for kv in ${SM_EXTRA_ENV_DOTENV[@]+"${SM_EXTRA_ENV_DOTENV[@]}"}; do names="$names $kv"; done
+  [ -z "$names" ] || printf '# extra env, names only (values are not shown):%s\n' "$names"
+}
+
+main_args() { # main_args <session uuid> → args array
+  args=(--session-id "$1" --plugin-dir "$SM_PLUGIN_DIR" --mcp-config "$SM_MCP_CONFIG"
+        --settings '{"crossSessionInbound":"accept"}'
+        --dangerously-load-development-channels server:slack-channel)
+  # more development channels this bot loads (config bots[].extra_channels → SM_EXTRA_CHANNELS · each word has no shell-special characters)
+  local w; for w in ${SM_EXTRA_CHANNELS:-}; do args+=("$w"); done
+  args+=(--append-system-prompt-file "$SM_CONTRACT")
+  [ -n "$SM_MODEL" ] && args+=(--model "$SM_MODEL")
+  [ "$SM_PERMISSION" = skip ] && args+=(--dangerously-skip-permissions)
+  return 0
+}
+
+run_main() {
+  load "$1"
+  local sid args
+  sid="$(new_uuid | tr '[:upper:]' '[:lower:]')"
+  export MODS_HARNESS_BOT="$SM_BOT" MODS_HARNESS_SESSION_ID="$sid" MODS_HARNESS_CONFIG="$SM_HARNESS_CONFIG"
+  export DISABLE_AUTOUPDATER=1
+  # sec r5 (Linux umask 0002 · 10-26): files the bot's plugins create without a mode (registry · live · state) stay owner-only —
+  # the hooks lane refuses a group-writable one, and a stock Ubuntu shell starts at 0002 (macOS 022 hid it)
+  umask 077
+  # config bots[].extra_env plain words — checked again here: an OLDER launch.sh made before the allow list (sec ④ round 3) or before
+  # the value shapes (round 4) may still carry a refused name or value, and install then refuses and leaves it. One rule with validate:
+  # slackmod_config.py env-plain prints the words that pass, names the others on stderr (never a value) — config-unit ⑦l pins it.
+  local kv
+  if [ -n "${SM_EXTRA_ENV[*]:-}" ]; then
+    while IFS= read -r kv; do export "$kv"; done < <("${CFG[@]}" env-plain "${SM_EXTRA_ENV[@]}")
+  fi
+  # secret-looking extra_env names: launch.sh holds the NAMES only — the values are read from the bot's own .env (0600) now
+  if [ -n "${SM_EXTRA_ENV_DOTENV[*]:-}" ]; then
+    while IFS= read -r kv; do export "$kv"; done < <("${CFG[@]}" env-export --file "$SM_SLACK_DIR/.env" "${SM_EXTRA_ENV_DOTENV[@]}")
+  fi
+  unset MODS_HARNESS_DEV
+  export PATH="$(dirname "$SM_CLAUDE"):$ROOT/bin:$PATH"
+  cd "$SM_WORK_DIR" || exit 1
+  # crossSessionInbound accept = the bot takes its sub-sessions' reports (report_to_parent → session.send). The harness
+  # gives sub-sessions the same setting (core.js spawn argv); a fresh account must not depend on a default here.
+  main_args "$sid"
+  "$SM_CLAUDE" "${args[@]}"
+  echo "[slackmod] $1 봇이 꺼졌습니다. 다시 켜기: slackmod stop $1 ; slackmod start $1"
+  exec "${SHELL:-bash}"
+}
+
+status() {
+  local bot up sock tok kids sd
+  printf '%-14s %-6s %-6s %-14s %s\n' 봇 켜짐 다리 토큰 하위창
+  for bot in $(bots); do
+    # sec r2 ⑬ (re-review 10-26): status is read-only — it does not source launch.sh (the doctor runs it). The Slack folder is the
+    # generator's fixed layout (slackmod_config.py: SM_SLACK_DIR = <root>/bots/<bot>/slack), the only launch value status used.
+    sd="$ROOT/bots/$bot/slack"
+    up=꺼짐; kids=0
+    if tmux has-session -t "=$bot" 2>/dev/null; then
+      up=켜짐
+      kids="$(tmux list-windows -t "=$bot" -F '#{window_name}' 2>/dev/null | grep -cv -e '^bridge$' -e '^main$' || true)"
+    elif have_herdr; then
+      hws="$(herdr_ws "$bot" 2>/dev/null)" || hws=""
+      if [ -n "$hws" ]; then up=켜짐; kids="$(herdr_kids "$hws")"; fi
+    fi
+    sock=없음; [ -S "$sd/primary.sock" ] && sock=있음
+    [ "$up" != 켜짐 ] && [ "$sock" = 있음 ] && sock=낡음    # K20: a file left by a bridge that died with a lost server
+    tok="$("${CFG[@]}" env-status --file "$sd/.env" | sed 's/bot_token=//; s/ app_token=/·/')"
+    printf '%-14s %-6s %-6s %-14s %s\n' "$bot" "$up" "$sock" "$tok" "$kids"
+  done
+}
+
+set_token() {
+  local bot="$1" bt at
+  load "$bot"
+  echo "$bot 의 Slack 앱 토큰 2개를 넣습니다 (붙여 넣어도 화면에 안 보입니다)."
+  read -rs -p "  1) Bot User OAuth Token (xoxb- 로 시작): " bt; echo
+  read -rs -p "  2) App-Level Token (xapp- 로 시작): " at; echo
+  printf '%s\n%s\n' "$bt" "$at" | "${CFG[@]}" env-set-tokens --file "$SM_SLACK_DIR/.env"
+  local rc=$?
+  bt=""; at=""
+  [ $rc -eq 0 ] && echo "  켜기: slackmod start $bot"
+  return $rc
+}
+
+# the bundled judge of the «하위 라우터» reads its Claude API key from one 0600 file in the bot's slack folder (route-judge.key ·
+# the judge's --key-file), at each call — never from the bot's environment (sec r6 ⓑ2) · hidden input, piped (never on a command line)
+set_judge_key() {
+  local bot="$1" k
+  load "$bot"
+  echo "$bot 의 하위 라우터 판정기 키(Claude API 키)를 넣습니다 (붙여 넣어도 화면에 안 보입니다 · 같은 계정의 프로그램은 이 파일을 읽을 수 있으니 판정 전용으로 한도를 건 키를 쓰세요)."
+  read -rs -p "  판정기 키: " k; echo
+  printf '%s\n' "$k" | "${CFG[@]}" key-file-set --file "$SM_SLACK_DIR/route-judge.key"
+  local rc=$?
+  k=""
+  [ $rc -eq 0 ] && echo "  바로 적용(판정기가 부를 때마다 이 파일을 읽음 · 다시 켤 필요 없음)"
+  return $rc
+}
+
+cmd="${1:-}"; shift || true
+[ -n "$PY" ] || die "python3 가 없습니다"
+case "$cmd" in
+  start)
+    force=0; tgt=""; want=auto
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --force) force=1 ;;
+        --backend) want="${2:-}"; shift ;;
+        --backend=*) want="${1#--backend=}" ;;
+        *) tgt="$1" ;;
+      esac
+      shift
+    done
+    case "$want" in auto|tmux|herdr) ;; *) RC=2 die "--backend 는 auto · tmux · herdr 중 하나입니다 (받은 값: ${want:-빈 값})" ;; esac
+    backend="$(pick_backend "$want")"
+    rc=0
+    for b in $(targets "$tgt"); do ( start_one "$b" "$force" "$backend" ) || rc=$?; done
+    exit $rc ;;
+  stop)
+    for b in $(targets "${1:-}"); do
+      off=1
+      if tmux has-session -t "=$b" 2>/dev/null; then tmux kill-session -t "=$b"; echo "$b: 껐습니다(하위 창 포함)"; off=0; fi
+      if have_herdr; then
+        ws="$(herdr_ws "$b" 2>/dev/null)" || ws=""
+        if [ -n "$ws" ]; then "$HB" workspace close "$ws" >/dev/null 2>&1 && echo "$b: 껐습니다(herdr 작업공간 · 하위 탭 포함)" || echo "$b: herdr 작업공간 $ws 를 못 닫음"; off=0; fi
+      fi
+      [ $off = 0 ] || echo "$b: 꺼져 있습니다"
+    done ;;
+  status) status ;;
+  set-token) [ -n "${1:-}" ] || die "봇 이름을 주세요"; set_token "$1" ;;
+  set-judge-key) [ -n "${1:-}" ] || die "봇 이름을 주세요"; set_judge_key "$1" ;;
+  check-windows) check_windows ;;
+  attach)
+    [ -n "${1:-}" ] || die "봇 이름을 주세요"
+    if ! tmux has-session -t "=$1" 2>/dev/null && have_herdr && [ -n "$(herdr_ws "$1" 2>/dev/null)" ]; then
+      echo "$1: herdr 에서 켜져 있습니다 — herdr 를 열고 작업공간 목록에서 이 봇($1)을 고르세요 (명령: $HB)"; exit 0
+    fi
+    # the bot window, not the bridge log (a session started before start chose main had «bridge» current)
+    tmux select-window -t "=$1:main" 2>/dev/null
+    # already inside a tmux client: a nested attach is refused («sessions should be nested with care») → move this client
+    if [ -n "${TMUX:-}" ]; then
+      tmux switch-client -t "=$1" || die "$1 세션으로 옮기지 못했습니다 — 이 tmux 밖의 새 터미널에서: slackmod attach $1"
+      echo "$1 봇 창으로 옮겼습니다 · 돌아가기 = Ctrl+b 뗀 뒤 L (바로 앞 세션)"; exit 0
+    fi
+    exec tmux attach -t "=$1" ;;
+  open)
+    # the bot-name command: end THIS bot's running session (its own session / workspace by exact name — never a pattern),
+    # start a new conversation, then attach. A bot's own shell must not restart bots, and without a terminal there is
+    # nothing to attach — both do nothing.
+    [ -n "${1:-}" ] && [ "$1" != all ] || die "봇 이름을 주세요 (all 은 안 됨)"
+    load "$1"
+    if [ -n "${CLAUDECODE:-}" ] || [ -n "${MODS_HARNESS_SESSION_ID:-}" ]; then RC=3 die "봇 창 안에서는 봇을 다시 켜지 않습니다 — 사람 터미널에서 봇 이름($1)을 치세요"; fi
+    { [ -t 0 ] && [ -t 1 ]; } || RC=3 die "터미널에서만 씁니다 (스크립트에서는 slackmod stop $1 · slackmod start $1)"
+    "$BASH" "$0" stop "$1" | grep -v '꺼져 있습니다'
+    i=0; while bridge_pid_live && [ $i -lt 20 ]; do sleep 0.5; i=$((i + 1)); done
+    bridge_pid_live && RC=9 die "$1: 옛 Slack 다리가 10초 뒤에도 살아 있습니다 — 조금 뒤 다시 봇 이름($1)을 치세요"
+    "$BASH" "$0" start "$@" || exit $?
+    exec "$BASH" "$0" attach "$1" ;;
+  _run-bridge) run_bridge "$1" ;;
+  _run-main) run_main "$1" ;;
+  _print-main) print_main "$1" ;;
+  ''|-h|--help|help) sed -n 2,10p "$0" ;;
+  *) die "모르는 명령: $cmd (slackmod help)" ;;
+esac

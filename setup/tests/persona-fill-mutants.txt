@@ -1,0 +1,19 @@
+# persona-fill.py mutants. Format: description ||| old ||| new
+# run: bash setup/tests/mutate.sh setup/lib/persona-fill.py PERSONA_FILL setup/tests/persona-fill-mutants.txt setup/tests/persona-test.sh
+role default tone dropped ||| or DEFAULT_TONE[role], ||| or '',
+file we did not make gets overwritten ||| if old is not None and MARK not in old and not force: ||| if False:
+unchanged file rewritten (not idempotent) ||| if old == new: ||| if False:
+no .bak copy before --force ||| if old is not None and MARK not in old: ||| if False:
+existing profile overwritten/refused to skip ||| if os.path.isfile(profile_path): ||| if False:
+profile mode loosened ||| os.O_EXCL, 0o600) ||| os.O_EXCL, 0o644)
+extra boundary dropped ||| 'boundary': ['- ' + x for x in bot['boundary']], ||| 'boundary': [],
+user context section dropped ||| 'user-context': (['', '## 사용자 컨텍스트', ''] + ctx) if ctx else [], ||| 'user-context': [],
+signature line in voice section dropped ||| 'signature': ['- 보고 · 완료 글 끝 서명: ' + sig] if sig else [], ||| 'signature': [],
+custom role details dropped ||| 'role-details': ['- ' + x for x in bot['role_details']], ||| 'role-details': [],
+bad name accepted ||| if not NAME_RE.match(name): ||| if False:
+bad role accepted ||| if role not in ROLES: ||| if False:
+custom without role line accepted ||| if role == 'custom' and not role_line: ||| if False:
+duplicate names accepted ||| if name in seen: ||| if False:
+tone placeholder not replaced ||| re.sub(r'<(BOT_NAME|TONE|ROLE_LINE)>', ||| re.sub(r'<(BOT_NAME|ROLE_LINE)>',
+control characters accepted ||| if re.search(r'[\x00-\x08\x0b-\x1f\x7f]', v): ||| if False:
+length limit not enforced ||| if len(v) > limit: ||| if False:
