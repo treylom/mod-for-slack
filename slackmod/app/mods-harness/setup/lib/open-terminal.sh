@@ -3,6 +3,8 @@
 #   ① paste the two Slack tokens (hidden input — «slackmod set-token <bot>») ② if Claude Code is not logged in: say «/login» and
 #   open claude so the person can ③ start the bot («slackmod start <bot>»). A tool call has no keyboard, so this step is a must.
 #   bash open-terminal.sh <bot> [--dry-run]
+#   bash open-terminal.sh --continue <bot> [--dry-run]   (이어 하기) 그 봇 작업 폴더에서 Claude Code 를 열어 마법사가 «나중에»로
+#        미룬 칸(업무 묻기 · 작업 폴더 · 추천 …)을 이어 묻게 함 — Slack 연결 전에도 됨 · 봇이 아직 설치 전이면 홈 폴더에서 엶
 # The first output line is always:   OPEN <backend> <command>      (<command> = what the new window runs)
 # Which window opens (first match wins): herdr (HERDR_ENV=1: a new tab) · inside a tmux session ($TMUX: a new window) ·
 # macOS (Terminal.app · iTerm2 when TERM_PROGRAM says so) · WSL (wt.exe new tab) · Linux (x-terminal-emulator) · none (the
@@ -11,9 +13,11 @@
 set -euo pipefail
 BOT=""
 DRY=0
+CONTINUE=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run) DRY=1; shift ;;
+    --continue) CONTINUE=1; shift ;;
     -h|--help) sed -n 2,10p "$0"; exit 0 ;;
     -*) echo "모르는 옵션: $1" >&2; exit 2 ;;
     *) [ -z "$BOT" ] && BOT="$1" || { echo "봇 이름은 하나만" >&2; exit 2; }; shift ;;
@@ -25,11 +29,35 @@ printf '%s' "$BOT" | grep -qE '^[a-z][a-z0-9-]{0,31}$' || { echo "봇 이름은 
 ROOT="${SLACKMOD_ROOT:-$HOME/.slackmod}"
 case "$ROOT" in *\'*|*'
 '*) echo "설치 폴더 경로에 작은따옴표·줄바꿈이 있으면 못 엽니다: $ROOT" >&2; exit 2 ;; esac
-if [ ! -f "$ROOT/bots.list" ] || ! grep -qx -- "$BOT" "$ROOT/bots.list"; then
+if [ "$CONTINUE" = 0 ] && { [ ! -f "$ROOT/bots.list" ] || ! grep -qx -- "$BOT" "$ROOT/bots.list"; }; then
   echo "봇 «${BOT}» 이(가) 설치돼 있지 않습니다($ROOT/bots.list) — 설치(install.sh --plan)를 먼저 하세요" >&2
   exit 2
 fi
 SCRIPT="$ROOT/state/first-run-$BOT.sh"
+if [ "$CONTINUE" = 1 ]; then
+  SCRIPT="$ROOT/state/continue-$BOT.sh"
+  SETUP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+  REPO_DIR="${MODS_SETUP_REPO:-$(cd "$SETUP_DIR/.." && pwd -P)}"
+  # 봇 작업 폴더: 설치됐으면 설정 파일의 work_dir · 아니면 ~/bots/<봇> 이 있으면 그것 · 아니면 홈
+  WD=""
+  if [ -f "$ROOT/config.json" ] && command -v python3 >/dev/null 2>&1; then
+    WD="$(python3 -I -c 'import json,sys
+try:
+    for b in json.load(open(sys.argv[1])).get("bots", []):
+        if isinstance(b, dict) and b.get("name") == sys.argv[2]:
+            print(b.get("work_dir") or "")
+except Exception:
+    pass' "$ROOT/config.json" "$BOT" 2>/dev/null || true)"
+  fi
+  [ -n "$WD" ] && [ -d "$WD" ] || WD="$HOME/bots/$BOT"
+  [ -d "$WD" ] || WD="$HOME"
+  CLAUDE_CMD="$(command -v claude 2>/dev/null || true)"
+  [ -n "$CLAUDE_CMD" ] || { [ -x "$HOME/.local/bin/claude" ] && CLAUDE_CMD="$HOME/.local/bin/claude"; } || CLAUDE_CMD=claude
+  for v in "$WD" "$SETUP_DIR" "$REPO_DIR" "$CLAUDE_CMD"; do
+    case "$v" in *\'*|*'
+'*) echo "경로에 작은따옴표·줄바꿈이 있으면 못 엽니다: $v" >&2; exit 2 ;; esac
+  done
+fi
 CMD="sh '$SCRIPT'"
 
 # what the new window runs (written only on a real run — state/ is outside the install fingerprint)
@@ -61,6 +89,19 @@ esac
 stay
 EOS
 }
+
+continue_text() {
+  cat <<EOS
+#!/bin/sh
+# made by open-terminal.sh --continue — runs in the new window: the setup wizard's postponed steps, in the bot's own folder
+cd '$WD' 2>/dev/null || cd "\$HOME"
+echo "== $BOT 설치 이어 하기: 이 폴더에서 Claude Code 를 엽니다 — 미뤄 둔 칸(업무 묻기 · 작업 폴더 · 추천 …)을 이어서 묻습니다 =="
+echo "(처음 한 번 «이 폴더를 믿겠습니까?» 창이 뜨면 믿음을 고르세요 · 끝나면 /exit)"
+MODS_SETUP_REPO='$REPO_DIR'; export MODS_SETUP_REPO
+exec '$CLAUDE_CMD' --plugin-dir '$SETUP_DIR' "/mods-setup:setup --resume"
+EOS
+}
+[ "$CONTINUE" = 1 ] && script_text() { continue_text; }
 
 # --- which backend ---
 BACKEND=none
@@ -99,7 +140,8 @@ if [ "$BACKEND" = none ]; then
   exit 0
 fi
 echo "  방법: $VIA"
-echo "  새 창이 할 일: ① slackmod set-token $BOT (붙여 넣어도 화면에 안 보임) ② 로그인 안 돼 있으면 /login 안내 ③ slackmod start $BOT"
+if [ "$CONTINUE" = 1 ]; then echo "  새 창이 할 일: $WD 에서 Claude Code 를 열고 설치 마법사의 미뤄 둔 칸을 이어서 묻기(/mods-setup:setup --resume)"
+else echo "  새 창이 할 일: ① slackmod set-token $BOT (붙여 넣어도 화면에 안 보임) ② 로그인 안 돼 있으면 /login 안내 ③ slackmod start $BOT"; fi
 if [ "$DRY" = 1 ]; then echo "(미리 보기 — 창을 열지도, 파일을 쓰지도 않았습니다)"; exit 0; fi
 
 mkdir -p "$ROOT/state"

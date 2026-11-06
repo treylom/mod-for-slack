@@ -1,29 +1,60 @@
-# Claude Code MOD 키트 (미리보기)
+# SlackMod (미리보기)
 
-> 공개 이름은 정식 공개 때 정합니다. 지금은 «미리보기(알파)» 판입니다 — 문제는 이슈로 알려 주세요.
+> 지금은 «미리보기(알파)» 판입니다 — 문제는 이슈로 알려 주세요.
 
 Slack 채널에 글을 쓰면 Claude Code 봇이 받고, 여러 단계가 걸리는 일은 **그 스레드 전용 하위 세션을 새 창에 열어** 맡깁니다(설치 마법사의 «하위 세션 쓰기» 를 끄면 하위 없이 봇 본 창에서 합니다 · 선택 칸 «하위 라우터» 를 켜면 주인 글이 어느 하위의 일인지 판정 모델이 골라 넘겨 줍니다 · 주인 DM 스레드의 봇 답 맨 앞엔 주인 태그가 붙습니다). 봇끼리 스레드에서 대화하고, 허락한 사람(손님)이 있는 채널에서도 대화할 수 있습니다.
 
 손님 글에는 대화와 답만 합니다. 손님 글이 들어온 턴에는 읽기와 Slack 답·반응 말고는 도구가 스스로 거절하고, 뒤 턴에도 손님 글의 문장(30자 이상)을 그대로 담아 하위 세션에 넘기는 일은 거절합니다. **한계:** 봇이 손님 말을 바꿔 써서 넘기는 것까지는 도구로 막지 못합니다 — 그 부분은 봇 규칙(손님 글은 하위 세션으로 옮기지 않는다)으로 지킵니다.
 
+## Claude Code 먼저 깔기
+
+이 설치 도우미는 **Claude Code 가 이미 깔린 컴퓨터**를 전제로 합니다. 명령창이 무엇이든(맥 터미널 · tmux · herdr · cmux 창 안) 상관없고, Claude Code 만 깔려 있으면 됩니다. 윈도우는 PowerShell 이 아니라 윈도우 안 리눅스(WSL · Ubuntu) 창에서 진행합니다 — 아래 윈도우 줄을 보세요. Claude Code 가 아직 없다면 아래 쉬운 길로 먼저 깔고 오세요.
+
+- **윈도우** — 한 번에 깔아 주는 설치기: https://github.com/treylom/cc-codex-easyinstall (윈도우 안 리눅스(WSL·Ubuntu) · Claude Code · tmux 를 함께 깝니다). 봇은 그 Ubuntu 창 안에서 돕니다 — 설치가 끝나면 시작 메뉴의 «Ubuntu» 를 열고 아래 «빠른 시작»을 그 창에서 하세요.
+- **맥 · 리눅스 · WSL** — 공식 한 줄(관리자 권한 없이): `curl -fsSL https://claude.ai/install.sh | bash` → 새 창에서 `claude` 를 한 번 열어 로그인.
+
 ## 빠른 시작 (macOS · WSL Ubuntu · Linux)
 
 ```bash
-git clone <이 저장소 주소> mod-kit && cd mod-kit
+git clone <이 저장소 주소> slackmod && cd slackmod
 bash install.sh
 ```
+
+Slack 앱이 아직 없으면 먼저 [Slack 앱 만들고 열쇠 받기](docs/slack-app.md)를 보세요 — 봇 하나에 앱 하나이고, 앱 설정을 한 번에 채우는 매니페스트 파일(`slackmod/slack-app-manifest.json`)이 들어 있습니다.
 
 `install.sh` 는 필요한 프로그램(Claude Code · node 20+ · python3 · git · 다중 창 도구)을 점검하고, 빠진 것은 설치 명령만 보여 줍니다(관리자 권한 명령을 스스로 실행하지 않습니다). 그다음 Claude Code 가 **설치 마법사**로 바로 시작합니다.
 
 마법사가 하는 일:
 
+0. 컴퓨터를 먼저 살펴봅니다(읽기만): 컴퓨터 종류 · 명령창 · Claude Code 버전 · 기본 기억 · 노트 앱 폴더 · 이미 깔린 스킬과 추가 기능. 쓰던 Claude Code 대화 기록은 **미리 알린 뒤** 숫자만 셉니다(자주 일한 폴더 · 자주 쓴 도구 — 글 내용은 저장하지도 보여 주지도 않음 · «읽지 않기»를 고를 수 있음).
 1. 이미 쓰던 설정(Claude Code · Codex · 다른 봇)을 찾아 보여 주고, 가져올지 묻습니다. 가져올 때는 **사본**만 별도 폴더로 옮깁니다 — 원본은 건드리지 않습니다.
-2. 모드를 고릅니다: 빠른(추천 기본값) · 전체(칸마다 고르기) · 빈 판(설치만).
+2. 모드를 고릅니다: 빠른(추천 기본값) · 전체(칸마다 고르기) · 빈 판(설치만). 빠른 모드도 «추천 스킬 · 작업 폴더 · 기억도 물어볼까요?» 한 번 묻습니다.
 3. 창 도구 · Slack 연결 · 위키 폴더 · MCP · 코덱스 · 점검 스킬 · 브라우저 · 메모리 · 하위 세션 쓰기 · 하위 라우터를 고릅니다(빠른 모드는 Slack 연결 · 하위 세션 쓰기 · 하위 라우터만 묻습니다).
+   새 칸: **추천 스킬**(모두에게 같은 기본 묶음 — 기억 잇기 · 자료 찾기 · «무엇을 쓰면 되나요?» 도움말 · 점검과 되돌리기 — 그 위에 우리 목록과 Claude Code 공식 추가 기능 목록에서 조건 맞는 것만 권함 · 이미 있는 것은 뺌 · 고른 것만 넣음) · **기억**(기본 기억 + 노트 앱 폴더 · 둘 다 없으면 빈 노트 폴더 틀을 깔아 줌 · 바깥 기억 서비스는 연결 시험이 통과할 때만 이음) · **작업 폴더**(선택 — 평소 일하는 폴더를 봇에게 이어 줌 · 이은 폴더 밖은 열지 않음) · **생각 깊이**(모든 봇 한 번에 또는 봇마다) · **쓸 수 있는 모델**(이름 확인 + 짧은 실제 호출 · 답이 없으면 «확인 안 됨»).
 4. 봇마다 이름과 성격을 짧은 인터뷰로 정하고, 넣기 전에 점검합니다. 가져올 봇이 없으면 역할 기본값 셋(총괄 · 감시/일정 · 조사)으로 시작합니다.
-5. 고른 것을 **한 번에** 설치하고, 점검 표를 보여 준 뒤, 새 터미널 창을 열어 토큰을 넣고 봇을 켭니다. 처음 켤 때 봇 창에 확인 화면이 뜹니다 — 고르는 법은 [SUPPORT.md](SUPPORT.md) 의 «처음 켤 때 봇 창의 확인 화면» 줄.
+   하시는 일을 다섯 가지 묻습니다 — «나중에»를 고르면 미뤄 두었다가 이어 묻습니다.
+5. 고른 것을 **한 번에** 설치하고(설치마다 «무엇을 바꿨는지» 기록 → 방금 설치를 되돌릴 수 있음), 점검 표를 보여 준 뒤, 새 터미널 창을 열어 토큰을 넣고 봇을 켭니다. 처음 켤 때 봇 창에 확인 화면이 뜹니다 — 고르는 법은 [SUPPORT.md](SUPPORT.md) 의 «처음 켤 때 봇 창의 확인 화면» 줄.
 
-칸 하나만 다시 하려면: Claude Code 에서 `/mods-setup:setup --section slack` 처럼 부릅니다.
+칸 하나만 다시 하려면: Claude Code 에서 `/mods-setup:setup --section slack` 처럼 부릅니다. 미뤄 둔 칸만 이어 하려면 터미널에서 `bash install.sh --resume` — Slack 을 잇기 전에도 됩니다(마법사가 끝날 때 그 봇 폴더에서 Claude Code 창을 열어 이어 하게 할 수도 있습니다). 봇 생각 깊이는 나중에 `slackmod set-effort <봇|all> <low|medium|high|xhigh|max|default>` 로 바꾸고 그 봇을 껐다 켭니다.
+
+## 함께 쓰면 좋은 공개 저장소
+
+설치 마법사의 «추천 스킬» 칸이 조건에 맞을 때 권하는 우리 공개 저장소입니다(고른 것만 넣습니다). Claude Code 안에서 두 줄씩 칩니다.
+
+- 노트 폴더 정리 도우미 — https://github.com/treylom/knowledge-manager · `/plugin marketplace add treylom/knowledge-manager` → `/plugin install km@knowledge-manager`
+- 부탁 글 다듬기 — https://github.com/treylom/prompt-engineering-skills · `/plugin marketplace add treylom/prompt-engineering-skills` → `/plugin install prompt-engineering-skills@prompt-engineering-skills`
+
+## 규칙과 관련 저장소
+
+이 저장소가 봇 운영 규칙 원본이 있는 곳입니다. [rules/](rules/) 에 세 묶음이 있습니다 — Claude Code 봇용(`rules/claude-code/`) · Codex 봇용(`rules/codex/`) · 특정 봇 이야기를 뺀 일반판(`rules/general/`). 아래 세 저장소는 각자 맡은 묶음의 사본과 설치기를 담고, 맨 위 안내 줄로 이곳을 가리킵니다.
+
+- [ThisCode](https://github.com/treylom/ThisCode) — Claude Code 봇 운영 묶음(`rules/claude-code/` 의 사본 · 설치기)
+- [ThisCodex](https://github.com/treylom/ThisCodex) — Codex 봇 운영 묶음(`rules/codex/` 의 사본 · 설치기)
+- [tofu-harness](https://github.com/treylom/tofu-harness) — 일반판 규칙과 하네스 점검 도구(`rules/general/` 의 사본)
+
+### 최근 바뀐 것
+
+- 2026-11 · 규칙 원본을 이 저장소로 옮겼습니다. 세 저장소의 기본 브랜치에 2026-10-25~27 규칙 갱신(웹 조사는 자체 도구 먼저 · 공개물은 화면에 그려진 줄바꿈까지 점검 · 보안 검토 방식 · 프로세스는 하나씩 확인하고 끄기)을 함께 반영했습니다.
 
 ## 지원 환경
 
@@ -49,7 +80,9 @@ Claude Code 의 공식 채널 플러그인(텔레그램 · 디스코드 · iMess
 
 ## 되돌리기
 
-`slackmod stop all` → 되살릴 파일이 있으면 `~/.slackmod/backup/<시각>/` 에서 먼저 꺼내 두기(설치 전 셸 설정 파일 사본도 여기 있고, 이 폴더도 `~/.slackmod` 안이라 마지막 단계에서 같이 지워짐) → 셸 설정 파일(`~/.zshrc` 또는 `~/.bashrc`)의 `# >>> slackmod >>>` 칸 삭제 → `~/.slackmod` 폴더 삭제(토큰·판정기 키 파일도 같이 지워짐). 봇 작업 폴더(기본 `~/bots/<이름>`)와 마법사가 그 안에 넣은 파일(성격 파일 · `.claude/settings.json` · `.mcp.json`)은 남으니, 필요 없으면 따로 지우세요.
+**방금 한 설치 하나만** 되돌리려면 터미널에서 `slackmod undo` — 무엇이 돌아가는지 먼저 보여 줍니다. 괜찮으면 `slackmod undo --yes`. 설치 뒤에 손으로 고친 파일이 하나라도 있으면 아무것도 건드리지 않고 그 파일 목록만 보여 주고 멈춥니다. Slack 토큰(봇의 `slack/.env`)은 되돌리지 않습니다. 처음 설치를 되돌리면 SlackMod 자체가 설치 전처럼 지워집니다.
+
+SlackMod 를 통째로 지우려면: `slackmod stop all` → 되살릴 파일이 있으면 `~/.slackmod/backup/<시각>/` 에서 먼저 꺼내 두기(설치 전 셸 설정 파일 사본도 여기 있고, 이 폴더도 `~/.slackmod` 안이라 마지막 단계에서 같이 지워짐) → 셸 설정 파일(`~/.zshrc` 또는 `~/.bashrc`)의 `# >>> slackmod >>>` 칸 삭제 → `~/.slackmod` 폴더 삭제(토큰·판정기 키 파일도 같이 지워짐). 봇 작업 폴더(기본 `~/bots/<이름>`)와 마법사가 그 안에 넣은 파일(성격 파일 · `.claude/settings.json` · `.mcp.json`)은 남으니, 필요 없으면 따로 지우세요.
 
 ## 라이선스
 
@@ -59,4 +92,4 @@ MIT — [LICENSE](LICENSE). 봇 성격 틀 일부는 MIT 공개 틀을 일반화
 
 ## English (short)
 
-A Claude Code mod kit: a Slack message reaches your Claude Code bot; multi-step work opens a per-thread sub-session in a new window. Bots can talk to each other in threads and, if you allow it, with listed guests in a shared channel. A guest's message only gets conversation and replies: in that turn every tool except reading and the Slack reply/reaction refuses, and a later hand-off to a sub-session that carries a guest's sentence (30+ characters) word for word is refused. Limit: a reworded copy is not caught by the tools — the bot's rules cover it. `bash install.sh` checks prerequisites and starts Claude Code in a setup wizard (import existing settings as copies → pick options → install once → health check → a terminal opens to enter tokens and start the bot). On first launch the bot window asks you to trust the folder and accept the bypass-permissions warning (once each: `slackmod attach <bot>`, arrow down to «Yes», Enter — plain Enter picks «No, exit»); the development-channels prompt comes every launch and `slackmod start` answers it for you. If you already run Claude Code's official Telegram/Discord/iMessage/fakechat channel plugin account-wide, it also starts inside each kit bot and fights over the same token (Telegram drops your existing connection) — health-check cell [8] names those bots. If a bot uses that channel on purpose, list it in that bot's `extra_channels` in `~/.slackmod/config.json` and re-run `install.sh`; otherwise switch the plugin off in that bot folder's `.claude/settings.local.json` (this affects every Claude window opened in that folder). After a reboot nothing starts by itself: run `slackmod start all` once (sub-sessions that were running have ended; schedules set inside a session must be set again). Known limits of this preview: the bot window runs with umask 077, so files the bot creates are owner-only (widen them with chmod where another account must read them); the optional bundled router judge sends the owner's message (up to 4,000 characters) and the sub-session descriptions to the Anthropic API, and its key file stays out of the bot's environment but is readable by programs of the same account (use a judge-only key with a spend limit; turning the router off leaves that key file in place — delete `~/.slackmod/bots/<bot>/slack/route-judge.key` to remove it); on a very busy machine the gate in front of every tool call can exceed its 7 s limit and refuse that call — retry it. To undo: `slackmod stop all`; copy anything you need out of `~/.slackmod/backup/<time>/` first (it holds the pre-install copy of your shell rc file and sits inside `~/.slackmod`, so the last step deletes it too); remove the `# >>> slackmod >>>` block from `~/.zshrc` or `~/.bashrc`; delete `~/.slackmod` (tokens and the judge key file included). Bot work folders (default `~/bots/<name>`) and the files the setup put there stay — delete them yourself if you no longer need them. Preview release — see SUPPORT.md. MIT licensed.
+SlackMod — a Claude Code mod kit: a Slack message reaches your Claude Code bot; multi-step work opens a per-thread sub-session in a new window. Bots can talk to each other in threads and, if you allow it, with listed guests in a shared channel. A guest's message only gets conversation and replies: in that turn every tool except reading and the Slack reply/reaction refuses, and a later hand-off to a sub-session that carries a guest's sentence (30+ characters) word for word is refused. Limit: a reworded copy is not caught by the tools — the bot's rules cover it. No Slack app yet? [Create the Slack app and get its tokens](docs/slack-app.en.md) — one app per bot, with a manifest file (`slackmod/slack-app-manifest.json`) that fills in the app settings. `bash install.sh` checks prerequisites and starts Claude Code in a setup wizard (import existing settings as copies → pick options → install once → health check → a terminal opens to enter tokens and start the bot). On first launch the bot window asks you to trust the folder and accept the bypass-permissions warning (once each: `slackmod attach <bot>`, arrow down to «Yes», Enter — plain Enter picks «No, exit»); the development-channels prompt comes every launch and `slackmod start` answers it for you. If you already run Claude Code's official Telegram/Discord/iMessage/fakechat channel plugin account-wide, it also starts inside each kit bot and fights over the same token (Telegram drops your existing connection) — health-check cell [8] names those bots. If a bot uses that channel on purpose, list it in that bot's `extra_channels` in `~/.slackmod/config.json` and re-run `install.sh`; otherwise switch the plugin off in that bot folder's `.claude/settings.local.json` (this affects every Claude window opened in that folder). After a reboot nothing starts by itself: run `slackmod start all` once (sub-sessions that were running have ended; schedules set inside a session must be set again). Known limits of this preview: the bot window runs with umask 077, so files the bot creates are owner-only (widen them with chmod where another account must read them); the optional bundled router judge sends the owner's message (up to 4,000 characters) and the sub-session descriptions to the Anthropic API, and its key file stays out of the bot's environment but is readable by programs of the same account (use a judge-only key with a spend limit; turning the router off leaves that key file in place — delete `~/.slackmod/bots/<bot>/slack/route-judge.key` to remove it); on a very busy machine the gate in front of every tool call can exceed its 7 s limit and refuse that call — retry it. To undo: `slackmod stop all`; copy anything you need out of `~/.slackmod/backup/<time>/` first (it holds the pre-install copy of your shell rc file and sits inside `~/.slackmod`, so the last step deletes it too); remove the `# >>> slackmod >>>` block from `~/.zshrc` or `~/.bashrc`; delete `~/.slackmod` (tokens and the judge key file included). Bot work folders (default `~/bots/<name>`) and the files the setup put there stay — delete them yourself if you no longer need them. Rules: this repository is now the source of the bot operating rules — [rules/](rules/) holds three sets (Claude Code bots · Codex bots · a general edition without bot-specific parts); [ThisCode](https://github.com/treylom/ThisCode), [ThisCodex](https://github.com/treylom/ThisCodex) and [tofu-harness](https://github.com/treylom/tofu-harness) keep copies with their own installers and point back here. Preview release — see SUPPORT.md. MIT licensed.

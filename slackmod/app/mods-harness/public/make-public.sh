@@ -28,7 +28,7 @@ done
 [ -n "$TC_REPO" ] || { echo "make-public: --thiscode-repo DIR required" >&2; exit 2; }
 SHA="$(git -C "$REPO" rev-parse --verify "$COMMIT^{commit}")"
 TC_SHA="$(git -C "$TC_REPO" rev-parse --verify "$TC_REF^{commit}")"
-NAME="mod-kit-$(date +%Y%m%d)-${SHA:0:7}-b${TC_SHA:0:7}"
+NAME="slackmod-$(date +%Y%m%d)-${SHA:0:7}-b${TC_SHA:0:7}"
 W="$(mktemp -d "${TMPDIR:-/tmp}/make-public.XXXXXX")"
 trap 'rm -rf "$W"' EXIT
 S="$W/$NAME"; mkdir -p "$S" "$W/src" "$W/bundle" "$OUT"
@@ -36,6 +36,13 @@ step() { printf '[make-public] %s\n' "$*"; }
 fail() { echo "make-public: $*" >&2; exit 3; }
 
 step "commit ${SHA:0:12} · bridge ${TC_SHA:0:12}"
+# symlinks: refused before anything is bundled — make-bundle's «zip -r» follows a folder link, so one link to a home
+# folder would pack that whole folder (11-02 bait run: zip at 2.8 GB RSS before it was stopped). The repo has none.
+# (read the whole listing with awk — «| grep -q» stops early, the writer gets SIGPIPE and pipefail turns a hit into «no»)
+LINKS="$(git -C "$REPO" ls-tree -r "$SHA" | awk -F'\t' '$1 ~ /^120000 / {print $2}')" || fail "git ls-tree failed on ${SHA:0:12}"
+if [ -n "$LINKS" ]; then printf '%s\n' "$LINKS" | head -5 >&2; fail "symlink in ${SHA:0:12} (refused before bundling)"; fi
+LINKS="$(git -C "$TC_REPO" ls-tree -r "$TC_SHA" -- vendor/claude-channel-server | awk -F'\t' '$1 ~ /^120000 / {print $2}')" || fail "git ls-tree failed on the bridge"
+[ -z "$LINKS" ] || fail "symlink in the bridge ${TC_SHA:0:12} vendor/claude-channel-server (refused before bundling)"
 # 0. the tools come from <commit>, never the working tree
 git -C "$REPO" archive "$SHA" port public | tar -x -C "$W/src"
 [ -f "$W/src/port/make-bundle.sh" ] || fail "port/make-bundle.sh is not in ${SHA:0:12}"
@@ -63,11 +70,34 @@ else
   step "PARTIAL tree (no wizard yet)"
 fi
 cp "$W/src/public/root/README.md" "$W/src/public/root/SUPPORT.md" "$W/src/public/root/LICENSE" "$S/"
+# the bot operating rules (source moved here from ThisCode · ThisCodex · team-harness) — optional folder
+if [ -d "$W/src/public/root/rules" ]; then
+  [ -z "$(find "$W/src/public/root/rules" -type l)" ] || fail "symlink in public/root/rules (a link target can carry a local path)"
+  cp -R "$W/src/public/root/rules" "$S/rules"
+fi
+# the «why SlackMod» page served by GitHub Pages from docs/ — optional folder · scanned below with the full table (no mask)
+if [ -d "$W/src/public/root/docs" ]; then
+  [ -z "$(find "$W/src/public/root/docs" -type l)" ] || fail "symlink in public/root/docs (a link target can carry a local path)"
+  cp -R "$W/src/public/root/docs" "$S/docs"
+fi
 
-# 3. gates over the WHOLE tree
-step "scan (port/scan-traces.sh over the whole tree)"
-bash "$W/src/port/scan-traces.sh" --table "$W/src/port/lib/traces.tsv" "$S" >"$W/scan.txt" 2>&1 || { cat "$W/scan.txt" >&2; fail "trace scan not clean"; }
+# 3. gates over the WHOLE tree — read through a scan view: the exact public link strings listed in
+#    public/allowed-public-names.txt are masked in root *.md and rules/ only (nothing else is masked, nowhere else);
+#    rules/ is scanned on its own with the identity classes only (its 설계 메모 section refs and template words such as
+#    «internal» are the rules' own vocabulary) · every other folder keeps the full table.
+V="$W/scanview"; cp -R "$S" "$V"
+python3 -I "$W/src/public/mask-public-names.py" "$W/src/public/allowed-public-names.txt" "$V" || fail "name mask failed"
+VR="$W/scanview-rules"; mkdir -p "$VR"; [ -d "$V/rules" ] && mv "$V/rules" "$VR/rules"
+step "scan (port/scan-traces.sh over the whole tree but rules/)"
+bash "$W/src/port/scan-traces.sh" --table "$W/src/port/lib/traces.tsv" "$V" >"$W/scan.txt" 2>&1 || { cat "$W/scan.txt" >&2; fail "trace scan not clean"; }
 tail -1 "$W/scan.txt"
+if [ -d "$VR/rules" ]; then
+  awk -F'\t' '$1 != "SPEC" && !($1 == "TERM" && $2 == "i")' "$W/src/port/lib/traces.tsv" > "$W/rules-traces.tsv"
+  step "scan rules/ (identity classes: secrets · bots · owner · paths · hosts · team · ids · ledger · child ids)"
+  bash "$W/src/port/scan-traces.sh" --table "$W/rules-traces.tsv" "$VR" >"$W/scan-rules.txt" 2>&1 || { cat "$W/scan-rules.txt" >&2; fail "trace scan not clean (rules/)"; }
+  tail -1 "$W/scan-rules.txt"
+fi
+rm -rf "$V" "$VR"
 # user-facing copy: no in-house jargon (porting rule 설계 메모) — root docs + setup/ markdown
 JARGON='정본|환류|린팅|발주|오케스트레이터|SoT|볼트 마스터|하위 봇'
 jh="$( { find "$S" -maxdepth 1 -name '*.md' -type f -print0 | xargs -0 grep -n -E "$JARGON" 2>/dev/null
@@ -98,7 +128,7 @@ git -C "$S" init -q -b main
 git -C "$S" add -A
 GIT_AUTHOR_NAME="$PUB_NAME" GIT_AUTHOR_EMAIL="$PUB_EMAIL" GIT_COMMITTER_NAME="$PUB_NAME" GIT_COMMITTER_EMAIL="$PUB_EMAIL" \
 GIT_AUTHOR_DATE="$PUB_DATE" GIT_COMMITTER_DATE="$PUB_DATE" \
-  git -C "$S" -c commit.gpgsign=false commit -q -m "MOD kit preview (${SHA:0:7} · bridge ${TC_SHA:0:7})"
+  git -C "$S" -c commit.gpgsign=false commit -q -m "SlackMod preview (${SHA:0:7} · bridge ${TC_SHA:0:7})"
 [ "$(git -C "$S" rev-list --count HEAD)" = 1 ] || fail "expected exactly one commit"
 [ -z "$(git -C "$S" remote)" ] || fail "a remote exists"
 # 5. the tarball = the committed files only (git archive: no .git, no builder user/group names) → metadata gate → only then anything lands in <out>

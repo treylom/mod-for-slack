@@ -1,0 +1,79 @@
+{
+ "name": "claude-plugins-official",
+ "description": "test copy: names only (shape of the official marketplace list)",
+ "owner": {
+  "name": "test"
+ },
+ "plugins": [
+  {
+   "name": "notion",
+   "description": "test entry",
+   "source": "./plugins/notion"
+  },
+  {
+   "name": "exa",
+   "description": "test entry",
+   "source": "./plugins/exa"
+  },
+  {
+   "name": "firecrawl",
+   "description": "test entry",
+   "source": "./plugins/firecrawl"
+  },
+  {
+   "name": "context7",
+   "description": "test entry",
+   "source": "./plugins/context7"
+  },
+  {
+   "name": "code-review",
+   "description": "test entry",
+   "source": "./plugins/code-review"
+  },
+  {
+   "name": "pr-review-toolkit",
+   "description": "test entry",
+   "source": "./plugins/pr-review-toolkit"
+  },
+  {
+   "name": "commit-commands",
+   "description": "test entry",
+   "source": "./plugins/commit-commands"
+  },
+  {
+   "name": "feature-dev",
+   "description": "test entry",
+   "source": "./plugins/feature-dev"
+  },
+  {
+   "name": "security-guidance",
+   "description": "test entry",
+   "source": "./plugins/security-guidance"
+  },
+  {
+   "name": "frontend-design",
+   "description": "test entry",
+   "source": "./plugins/frontend-design"
+  },
+  {
+   "name": "claude-md-management",
+   "description": "test entry",
+   "source": "./plugins/claude-md-management"
+  },
+  {
+   "name": "skill-creator",
+   "description": "test entry",
+   "source": "./plugins/skill-creator"
+  },
+  {
+   "name": "duckdb-skills",
+   "description": "test entry",
+   "source": "./plugins/duckdb-skills"
+  },
+  {
+   "name": "decoy-plugin",
+   "description": "test entry",
+   "source": "./plugins/decoy-plugin"
+  }
+ ]
+}

@@ -10,6 +10,8 @@
 #   ⑪ bot-name length edges 1 / 32 pass · 33 / uppercase / leading digit → rc 2 ⑫ old no-plan path unchanged (example copy → rc 4)
 #   ⑬ children (하위 세션 쓰기) false → harness.json session.children false + launch.sh SM_CONTRACT = contract-solo.md (both
 #      contract files installed) · true / absent → no key, contract.md · not a boolean → rc 2, names children
+#   ⑬o children_open (여는 말): custom → installed contract.md differs from the template on line 9 only (text inside «») · absent / the default text →
+#      byte-identical (cmp) · contract-solo.md never touched (children false + custom → still SM_CONTRACT contract-solo.md) · bad value → rc 2
 #   ⑭ router (하위 라우터) on + bundled → session.jev_route (judge argv + --key-file <bot>/slack/route-judge.key) + lib/route_judge.py ·
 #      no launch.sh name (sec r6 ⓑ2) · the key bait (slackmod set-judge-key: key file 1× 0600 · .env / install / status / doctor /
 #      config / harness / launch = 0×) · own command · off / children false / absent = no key · bad mode → rc 2
@@ -131,6 +133,53 @@ done
 new_home; mk_setup "$T/s13x.json" "d['children'] = 'no'"
 plan_run "$T/s13x.json"
 [ $RC -eq 2 ] && printf '%s' "$OUT" | grep -q 'children' && ok "⑬x children 'no': rc 2 · names children" || { no "⑬x rc=$RC"; printf '%s\n' "$OUT" | tail -3; }
+# ⑬o children_open (여는 말) → the installed contract.md differs from the template in ONE line (9) · default / absent = the same bytes
+TPL="$B/templates/main-contract.md"; TPLS="$B/templates/main-contract-solo.md"
+OPEN_DEF='하위 세션이 맡았어요'; OPEN_CUS='스레드를 따로 열어 맡겼어요'
+l9() { sed -n 9p "$1"; }
+for pair in custom:"d['children_open'] = '${OPEN_CUS}'" default:"d['children_open'] = '${OPEN_DEF}'" absent:"d.pop('children_open', None)"; do
+  v="${pair%%:*}"; ex="${pair#*:}"
+  new_home; mk_setup "$T/s13o.json" "$ex"
+  plan_run "$T/s13o.json"
+  C="$H/.slackmod/contract.md"
+  if [ "$v" = custom ]; then
+    nd="$(diff "$TPL" "$C" | grep -c '^[<>]')"; hd="$(diff "$TPL" "$C" | grep -m1 -E '^[0-9,]+[acd][0-9,]+$')"
+    t9="$(l9 "$TPL")"; exp9="${t9/«${OPEN_DEF}»/«${OPEN_CUS}»}"   # (bash substitution, not sed: byte-exact in any locale)
+    [ $RC -eq 0 ] && [ "$nd" = 2 ] && [ "$hd" = "9c9" ] && [ "$(l9 "$C")" = "$exp9" ] && l9 "$C" | grep -q "«${OPEN_CUS}»" && ! grep -q "${OPEN_DEF}" "$C" \
+      && [ "$(wc -l < "$TPL")" = "$(wc -l < "$C")" ] && [ "$(mode_of "$C")" = 644 ] \
+      && ok "⑬o custom children_open → contract.md differs from the template only on line 9 (text inside «» swapped) · 0644 · $(count0 "$OUT")" \
+      || { no "⑬o custom → rc=$RC changed-lines=$nd hunk=$hd"; printf '%s\n' "$OUT" | tail -3; }
+    before="$(listing "$H" | grep -v 'state/install.fp')"; plan_run "$T/s13o.json"
+    [ $RC -eq 0 ] && [ "$(count0 "$OUT")" = "바뀜 0" ] && [ "$(listing "$H" | grep -v 'state/install.fp')" = "$before" ] \
+      && ok "⑬o custom children_open: install again = 바뀜 0 · files unchanged" || { no "⑬o again → rc=$RC $(count0 "$OUT")"; printf '%s\n' "$OUT" | tail -3; }
+  else
+    [ $RC -eq 0 ] && cmp -s "$TPL" "$C" && [ "$(mode_of "$C")" = 644 ] \
+      && ok "⑬o children_open $v → contract.md byte-identical to the template (cmp) · 0644" || { no "⑬o children_open $v → rc=$RC not identical to the template"; printf '%s\n' "$OUT" | tail -3; }
+  fi
+  cmp -s "$TPLS" "$H/.slackmod/contract-solo.md" && ok "⑬o children_open $v → contract-solo.md byte-identical to its template" || no "⑬o children_open $v → contract-solo.md changed"
+done
+# children false + a custom opening line → contract-solo.md untouched · the bots still launch with contract-solo.md
+new_home; mk_setup "$T/s13s.json" "d['children'] = False; d['children_open'] = '${OPEN_CUS}'"
+plan_run "$T/s13s.json"
+gotc="$(sed -n 's/^SM_CONTRACT=//p' "$H/.slackmod/bots/lead/launch.sh" 2>/dev/null | tr -d "'" | sed 's#.*/##')"
+gotw="$(sed -n 's/^SM_CONTRACT=//p' "$H/.slackmod/bots/watch/launch.sh" 2>/dev/null | tr -d "'" | sed 's#.*/##')"
+[ $RC -eq 0 ] && cmp -s "$TPLS" "$H/.slackmod/contract-solo.md" && ! grep -q "${OPEN_CUS}" "$H/.slackmod/contract-solo.md" && [ "$gotc" = contract-solo.md ] && [ "$gotw" = contract-solo.md ] \
+  && [ "$(hjs lead "d['session'].get('children')")" = "False" ] \
+  && ok "⑬s children false + custom children_open → contract-solo.md byte-identical · launch.sh of both bots still SM_CONTRACT = contract-solo.md" \
+  || { no "⑬s children false + custom → rc=$RC solo-identical=$(cmp -s "$TPLS" "$H/.slackmod/contract-solo.md" && echo y || echo n) launch $gotc/$gotw"; printf '%s\n' "$OUT" | tail -3; }
+# --dry-run with a custom opening line on a fresh HOME writes nothing (the rendered contract is made in the installer's own temp folder)
+new_home; mk_setup "$T/s13d.json" "d['children_open'] = '${OPEN_CUS}'"
+before="$(listing "$H")"; plan_run "$T/s13d.json" --dry-run
+[ $RC -eq 0 ] && [ "$(listing "$H")" = "$before" ] && printf '%s' "$OUT" | grep -q 'contract.md' \
+  && ok "⑬d custom children_open + --dry-run: rc 0 · HOME listing unchanged · plans the contract.md write" || { no "⑬d dry-run custom → rc=$RC"; printf '%s\n' "$OUT" | tail -3; }
+# a bad opening line (line break · too long · token-shaped) → rc 2 · nothing written · the column named · the bait not printed
+for pair in nl:"d['children_open'] = 'a\\nb'" long:"d['children_open'] = 'x' * 81" tok:"d['children_open'] = 'xox' + 'b-BAITBAITBAITBAIT01'" num:"d['children_open'] = 5"; do
+  v="${pair%%:*}"; ex="${pair#*:}"
+  new_home; mk_setup "$T/s13b.json" "$ex"
+  before="$(listing "$H")"; plan_run "$T/s13b.json"
+  [ $RC -eq 2 ] && [ "$(listing "$H")" = "$before" ] && printf '%s' "$OUT" | grep -q 'children_open' && ! printf '%s' "$OUT" | grep -q 'BAITBAIT' \
+    && ok "⑬b bad children_open ($v) → rc 2 · nothing written · names children_open" || { no "⑬b bad children_open ($v) → rc=$RC"; printf '%s\n' "$OUT" | tail -3; }
+done
 # ⑭ router (하위 라우터 · 판정 모델이 고름) → session.jev_route · the bundled judge installed · its key FILE on its argv (--key-file) · no name on the launch line
 jr14() { python3 -I -c '
 import json, sys

@@ -38,7 +38,7 @@ if [ "$1" = "--version" ]; then echo "2.1.309 (Claude Code)"; exit 0; fi
 echo 22' ;;
       node18) fake "$d/node" '#!/bin/sh
 echo 18' ;;
-      python3|git|tmux|cmux|herdr|curl|brew) fake "$d/$s" '#!/bin/sh
+      python3|git|tmux|cmux|herdr|curl|brew|uuidgen) fake "$d/$s" '#!/bin/sh
 exit 0' ;;
       uname-linux) fake "$d/uname" '#!/bin/sh
 echo Linux' ;;
@@ -79,8 +79,10 @@ miss_case "window tool missing (mac)" claude node22 python3 git brew -- 'brew in
 miss_case "node missing"           claude python3 git tmux -- 'nvm install 22'                     'brew install|claude.ai/install'
 miss_case "node 18 is too old"     claude node18 python3 git tmux -- 'node 20 이상 \(지금 18\)'      'brew install|claude.ai/install'
 miss_case "claude missing"         node22 python3 git tmux -- 'claude.ai/install.sh \| bash'       'brew install|nvm install'
-miss_case "git missing (linux)"    claude node22 python3 tmux curl uname-linux -- 'sudo apt-get update && sudo apt-get install -y git ca-certificates' 'brew|nvm|claude.ai/install'
-miss_case "curl + git missing (linux)" claude node22 python3 tmux uname-linux -- 'apt-get install -y git curl ca-certificates' 'brew|nvm|claude.ai/install'
+miss_case "git missing (linux)"    claude node22 python3 tmux curl uuidgen uname-linux -- 'sudo apt-get update && sudo apt-get install -y git ca-certificates' 'brew|nvm|claude.ai/install'
+miss_case "curl + git missing (linux)" claude node22 python3 tmux uuidgen uname-linux -- 'apt-get install -y git curl ca-certificates' 'brew|nvm|claude.ai/install'
+# the bundle installer needs uuidgen on Linux → the entry check lists uuid-runtime up front (11-02 fresh Ubuntu: it stopped at the end of the wizard)
+miss_case "uuidgen missing (linux)" claude node22 python3 git tmux curl uname-linux -- 'sudo apt-get update && sudo apt-get install -y uuid-runtime ca-certificates' 'brew|nvm|claude.ai/install'
 miss_case "everything missing"     -- 'brew install .*python.*git.*tmux' 'zzzzzz'
 printf '%s' "$OUT" | grep -q 'nvm install 22' && printf '%s' "$OUT" | grep -q 'claude.ai/install.sh' && ok "②b everything missing: sudo-free lines for node and claude are listed too" || no "②b everything-missing lines"
 # ③ nvm node found without node on PATH · ~/.local/bin/claude found

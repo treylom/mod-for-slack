@@ -26,7 +26,9 @@ BASE = {'schema': 1, 'mode': 'full', 'mux': 'tmux',
         'bots': [{'name': 'lead', 'role': 'lead', 'work_dir': HOME + '/bots/lead', 'source': 'role-default', 'persona_dir': HOME + '/bots/lead'},
                  {'name': 'watch-2', 'role': 'watch', 'work_dir': HOME + '/bots/watch-2', 'source': 'import', 'persona_dir': HOME + '/bots/watch-2',
                   'slack_bot_user_id': 'UTESTBOT002', 'model': 'sonnet'}],
-        'import': {'from': ['claude-md:global', 'agent:reviewer'], 'to': HOME + '/.slackmod/import/20261024-170000'}}
+        'import': {'from': ['claude-md:global', 'agent:reviewer'], 'to': HOME + '/.slackmod/import/20261024-170000'},
+        # 11-02 (stage 1): an outside memory (hindsight) is saved only with a passed connection test (m4-plan2 ② covers the refusal)
+        'memory_setup': {'starter': False, 'starter_path': None, 'external_probe': 'ok'}}
 def probs(st):
     return m.check(st, HOME)
 got = probs(BASE)
@@ -76,6 +78,35 @@ case('router judge 17 words', setk(['router'], {'mode': 'on', 'judge': ['/opt/j'
 case('router not an object', setk(['router'], 'on'), 'setup.router')
 case('router unknown key', setk(['router'], {'mode': 'off', 'model': 'haiku'}), 'setup.router.model')
 case('router judge word shaped like a key', setk(['router'], {'mode': 'on', 'judge': ['/opt/j', 'sk-' + 'ant-BAITBAITBAITBAIT01']}), 'setup.router.judge')
+# children_open («하위 세션이 맡았어요» 자리 · 여는 말): one line · 1~80 characters · no control character · no «» · not token-shaped · absent = default
+DEFAULT_OPEN = '하위 세션이 맡았어요'
+case('children_open custom', setk(['children_open'], '스레드를 따로 열어 맡겼어요'), None)
+case('children_open default text', setk(['children_open'], DEFAULT_OPEN), None)
+case('children_open 1 character', setk(['children_open'], '맡'), None)
+case('children_open 80 characters', setk(['children_open'], '가' * 80), None)
+case('children_open with a custom text and children false', lambda st: (st.__setitem__('children', False), st.__setitem__('children_open', '새 여는 말')), None)
+case('children_open with a comma · colon · quote', setk(['children_open'], 'ok, "일" 맡음: 1/2'), None)
+def neg_open(label, mut, want):
+    """like case(), but the refusal must be the column's OWN rule: the unknown-key line would pass for the wrong reason before the column exists"""
+    st = copy.deepcopy(BASE); mut(st); got = probs(st)
+    hit = [x for x in got if x.startswith(want) and '모르는 칸' not in x]
+    (ok if len(hit) >= 1 and len(got) == len(hit) else no)('%s → refused by its own rule, names %s (got %s)' % (label, want, got))
+neg_open('children_open 81 characters', setk(['children_open'], '가' * 81), 'setup.children_open')
+neg_open('children_open empty', setk(['children_open'], ''), 'setup.children_open')
+neg_open('children_open only spaces', setk(['children_open'], '   '), 'setup.children_open')
+neg_open('children_open with a line break', setk(['children_open'], '한 줄\n두 줄'), 'setup.children_open')
+neg_open('children_open trailing line break', setk(['children_open'], '맡았어요\n'), 'setup.children_open')
+neg_open('children_open with CR', setk(['children_open'], '맡았어요\r'), 'setup.children_open')
+neg_open('children_open with a tab', setk(['children_open'], '맡았어요\t'), 'setup.children_open')
+neg_open('children_open with NUL', setk(['children_open'], '맡았\x00어요'), 'setup.children_open')
+neg_open('children_open with ESC', setk(['children_open'], '맡았\x1b[31m어요'), 'setup.children_open')
+neg_open('children_open with U+2028', setk(['children_open'], '맡았\u2028어요'), 'setup.children_open')
+neg_open('children_open with «', setk(['children_open'], '맡았\u00ab어요'), 'setup.children_open')
+neg_open('children_open with »', setk(['children_open'], '맡았\u00bb어요'), 'setup.children_open')
+neg_open('children_open shaped like a Slack token', setk(['children_open'], 'xox' + 'b-BAITBAITBAITBAIT01'), 'setup.children_open')
+neg_open('children_open shaped like an API key', setk(['children_open'], 'sk-' + 'ant-BAITBAITBAITBAIT01'), 'setup.children_open')
+for bad_v in (123, True, None, ['맡았어요'], {'a': 1}):
+    neg_open('children_open non-string %r' % (bad_v,), setk(['children_open'], bad_v), 'setup.children_open')
 # mcp
 case('mcp empty', setk(['mcp'], []), None)
 case('mcp bad name', setk(['mcp'], ['Wiki Search']), 'setup.mcp')
@@ -178,6 +209,18 @@ want_bots = ['lead', 'watch', 'research']
        and n['bots'][0]['work_dir'] == HOME + '/bots/lead' and n['bots'][0]['persona_dir'] == HOME + '/bots/lead' and n['bots'][0]['source'] == 'role-default'
    else no)('short answers file → defaults: quick · trio %s · mux auto · playwright · memory later · doctor on · children on · ~/bots/<name>' % want_bots)
 (ok if r.returncode == 0 and n.get('router') == {'mode': 'off', 'judge': None} else no)('short answers file → router off, no judge (got %s)' % n.get('router'))
+(ok if r.returncode == 0 and n.get('children_open') == DEFAULT_OPEN else no)('short answers file → --normalize fills children_open with the default «%s» (got %r)' % (DEFAULT_OPEN, n.get('children_open')))
+(ok if r.returncode == 0 and 'children_open' in n and list(n).index('children_open') == list(n).index('children') + 1 else no)('--normalize writes children_open right after children')
+cust = copy.deepcopy(BASE); cust['children_open'] = '스레드를 따로 열어 맡겼어요'
+rc_ = cli('--normalize', '--home', HOME, st=cust, name='cust.json'); nc = json.loads(rc_.stdout) if rc_.returncode == 0 else {}
+(ok if rc_.returncode == 0 and nc.get('children_open') == '스레드를 따로 열어 맡겼어요' else no)('--normalize keeps a custom children_open as typed (got %r)' % nc.get('children_open'))
+(ok if rc_.returncode == 0 and probs(nc) == [] and m.normalize(nc, HOME) == nc else no)('normalized file with a custom children_open re-checks clean · idempotent')
+nl = copy.deepcopy(BASE); nl['children_open'] = '한 줄\n두 줄'
+rn = cli('--home', HOME, st=nl, name='nl.json')
+(ok if rn.returncode == 2 and 'children_open' in rn.stdout else no)('CLI children_open with a line break → rc %d · names children_open' % rn.returncode)
+tk = copy.deepcopy(BASE); tk['children_open'] = 'xox' + 'b-BAITBAITBAITBAIT01'
+rt_ = cli('--home', HOME, st=tk, name='tk.json')
+(ok if rt_.returncode == 2 and 'children_open' in rt_.stdout and 'BAITBAIT' not in rt_.stdout else no)('CLI token-shaped children_open → rc %d · named · bait not printed' % rt_.returncode)
 short2 = {'schema': 1, 'bots': [{'name': 'solo'}]}
 r = cli('--normalize', '--home', HOME, st=short2, name='short2.json')
 n = json.loads(r.stdout) if r.returncode == 0 else {}

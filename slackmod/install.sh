@@ -7,6 +7,8 @@
 #                    rc 0 성공 · 2 입력 오류(setup 파일 고치기) · 3 먼저 깔 것 있음 · 4 설정 채움 필요(--plan 없이 처음 돌릴 때)
 # 바꾸는 파일·폴더는 먼저 ~/.slackmod/backup/<시각>/ 에 옮겨 둔다. sudo 는 이 스크립트가 부르지 않는다(필요한 줄만 따로 묶어 보여 줌).
 # 토큰은 이 스크립트가 묻지도 출력하지도 않는다 → 설치 뒤 «slackmod set-token <봇>».
+# 되돌리기: 바꾼 것마다 ~/.slackmod/state/installs/<시각>/ 에 기록(lib/record.py) → «slackmod undo» 가 방금 설치 하나를 되돌림.
+#   환경 변수 SLACKMOD_RECORD_DIR = 마법사가 «record.py begin» 으로 먼저 연 기록 폴더(없으면 이 설치기가 연다 · 봇 slack/.env 는 기록 안 함)
 set -euo pipefail
 umask 022
 BUNDLE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
@@ -23,7 +25,7 @@ while [ $# -gt 0 ]; do
     --rc) RC_FILE="${2:?--rc FILE}"; shift 2 ;;
     --plan) PLAN_FILE="${2:?--plan FILE}"; shift 2 ;;
     --no-npm) NPM_STEP=0; shift ;;
-    -h|--help) sed -n 2,10p "$0"; exit 0 ;;
+    -h|--help) sed -n 2,12p "$0"; exit 0 ;;
     *) echo "모르는 옵션: $1" >&2; exit 2 ;;
   esac
 done
@@ -41,9 +43,26 @@ BACKUP="$ROOT/backup/$STAMP"
 CHANGED=0
 SAME=0
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/slackmod-install.XXXXXX")"
-trap 'rm -rf "$WORK"' EXIT
+REC=""          # this run's record folder (undo) · empty = not recording (preview · a kit without lib/record.py)
+REC_DONE=0
+rec_finish() { # the record's «after» fingerprints + R/state/installs/last — at the end, and also when the run stops half way
+  [ -n "$REC" ] && [ "$REC_DONE" = 0 ] || return 0
+  REC_DONE=1
+  "$PY_BIN" -I "$BUNDLE/lib/record.py" finish --root "$ROOT" --dir "$REC" --config "$CONFIG" || say "  주의    되돌리기 기록을 마치지 못했습니다($REC)"
+}
+trap 'rec_finish; rm -rf "$WORK"' EXIT
 
 say() { printf '%s\n' "$*"; }
+rec() { # rec <kind> <path> [backup] [mode before] — one line of this run's record (kind = new · changed · tree · dir-new · rc)
+  [ -n "$REC" ] || return 0
+  printf '%s\t%s\t%s\t%s\n' "$1" "$2" "${3:-}" "${4:-}" >> "$REC/install.tsv"
+}
+mkdir_rec() { # mkdir_rec <dir> — mkdir -p, recording every folder it makes (outermost first: undo removes them innermost first)
+  local x="$1" made=()
+  while [ -n "$x" ] && [ "$x" != / ] && [ ! -e "$x" ] && [ ! -L "$x" ]; do made=("$x" ${made[@]+"${made[@]}"}); x="$(dirname "$x")"; done
+  mkdir -p "$1"
+  for x in ${made[@]+"${made[@]}"}; do rec dir-new "$x"; done
+}
 act() { # act <KIND> <what> — KIND = SAME | WRITE | DIR | RUN | COPY
   if [ "$1" = SAME ]; then SAME=$((SAME + 1)); say "  그대로   $2"; return; fi
   CHANGED=$((CHANGED + 1))
@@ -63,21 +82,23 @@ ensure_dir() { # ensure_dir <dir> <mode>
   if [ -d "$1" ]; then
     if [ "$(mode_of "$1")" != "$2" ]; then act WRITE "권한 $2 $1"; [ "$DRY" = 1 ] || chmod "$2" "$1"; else SAME=$((SAME + 1)); fi
   else
-    act DIR "$1"; [ "$DRY" = 1 ] || { mkdir -p "$1"; chmod "$2" "$1"; }
+    act DIR "$1"; [ "$DRY" = 1 ] || { mkdir_rec "$1"; chmod "$2" "$1"; }
   fi
 }
 put_file() { # put_file <target> <mode> <source file>
-  local t="$1" m="$2" s="$3"
+  local t="$1" m="$2" s="$3" before=""
   if [ -f "$t" ] && cmp -s "$s" "$t" && [ "$(mode_of "$t")" = "$m" ]; then act SAME "$t"; return; fi
   act WRITE "$t"
   [ "$DRY" = 1 ] && return
-  mkdir -p "$(dirname "$t")"
-  [ -e "$t" ] && backup_path "$t" copy
+  mkdir_rec "$(dirname "$t")"
+  if [ -e "$t" ]; then before="$(mode_of "$t")"; backup_path "$t" copy; fi
   local tmp
   tmp="$(mktemp "$t.slackmod-tmp.XXXXXX")"   # a fresh owner-only file: never a name planted beforehand (a repo can commit a link)
   cp "$s" "$tmp"
   chmod "$m" "$tmp"
   mv -f "$tmp" "$t"
+  # the record keeps the mode it had: a backup is owner-only (backup_path), undo puts the old mode back
+  if [ -n "$before" ]; then rec changed "$t" "$BACKUP/$(rel_home "$t")" "$before"; else rec new "$t"; fi
 }
 
 # ── 0. 바탕 점검 ─────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -170,6 +191,14 @@ if ! "${CFG_PY[@]}" validate --config "$CONFIG_USE"; then
   exit 4
 fi
 act SAME "설정 확인 통과"
+# 여는 말(children_open): contract.md = 틀 그대로 — 설정에 기본 아닌 여는 말이 있을 때만 그 한 줄의 «» 안 글이 바뀐다(contract-solo.md 는 늘 틀 그대로).
+# 아무것도 쓰기 전에 만들어 둔다(틀에 그 줄이 없으면 여기서 멈춤 · rc 2 · 손 안 댐).
+if ! "${CFG_PY[@]}" render-contract --config "$CONFIG_USE" --template "$BUNDLE/templates/main-contract.md" > "$WORK/contract.md" 2> "$WORK/contract.err"; then
+  { say "  봇 규칙 글(contract.md)을 만들 수 없습니다 — 아무것도 바꾸지 않았습니다:"; cat "$WORK/contract.err"; } >&2
+  exit 2
+fi
+# (record.py: a kit made before it has none → installs as before, without an undo record)
+HAVE_REC=0; [ -f "$BUNDLE/lib/record.py" ] && HAVE_REC=1
 # 봇마다 만들 파일을 «아무것도 쓰기 전에» 미리 계산한다 — 합칠 기존 파일(봇 폴더 .claude/settings.json · .mcp.json)이 깨져 있으면
 # 여기서 멈추므로 반쯤 설치된 상태가 남지 않는다(rc 2 · 손 안 댐).
 mkdir -p "$WORK/stage"
@@ -180,11 +209,26 @@ if ! "${CFG_PY[@]}" plan-stage --config "$CONFIG_USE" --stage "$WORK/stage" --ro
   { say "  봇 폴더의 기존 파일을 합칠 수 없습니다 — 아무것도 바꾸지 않았습니다. 고친 뒤 다시 실행하세요:"; cat "$WORK/plan.err"; } >&2
   exit 2
 fi
+# 되돌리기 기록 — the first write is below this line. The wizard may have opened the record already (record.py begin --watch …,
+# SLACKMOD_RECORD_DIR) so that what it wrote before the install is undone too · otherwise one is opened here.
+if [ "$DRY" = 0 ] && [ "$HAVE_REC" = 1 ]; then
+  if [ -n "${SLACKMOD_RECORD_DIR:-}" ]; then
+    case "$SLACKMOD_RECORD_DIR" in
+      "$ROOT/state/installs/"*) [ -d "$SLACKMOD_RECORD_DIR" ] && REC="$SLACKMOD_RECORD_DIR" ;;
+    esac
+    [ -n "$REC" ] || say "  주의    SLACKMOD_RECORD_DIR 가 $ROOT/state/installs/ 아래 기록 폴더가 아닙니다 — 새 기록을 엽니다"
+  fi
+  [ -n "$REC" ] || REC="$("$PY_BIN" -I "$BUNDLE/lib/record.py" begin --root "$ROOT" --stamp "$STAMP")" || REC=""
+fi
 # a config that carries secret-named extra_env values is owner-only (the values are copied to the bot's own .env below)
 CFG_MODE=644; grep -q '^ENVSEC' "$WORK/plan.tsv" && CFG_MODE=600
 if [ -n "$PLAN_FILE" ]; then put_file "$CONFIG" "$CFG_MODE" "$WORK/config.from-setup"
 elif [ "$CFG_MODE" = 600 ] && [ -f "$CONFIG" ] && [ "$(mode_of "$CONFIG")" != 600 ]; then
-  act WRITE "권한 600 $CONFIG (비밀 닮은 이름의 값이 들어 있음)"; [ "$DRY" = 1 ] || chmod 600 "$CONFIG"
+  act WRITE "권한 600 $CONFIG (비밀 닮은 이름의 값이 들어 있음)"
+  if [ "$DRY" = 0 ]; then
+    m0="$(mode_of "$CONFIG")"; backup_path "$CONFIG" copy; rec changed "$CONFIG" "$BACKUP/$(rel_home "$CONFIG")" "$m0"
+    chmod 600 "$CONFIG"
+  fi
 fi
 
 # ── 2. 폴더 · 고정 파일 ──────────────────────────────────────────────────────────────────────────────────────────────
@@ -194,8 +238,9 @@ for d in "$ROOT" "$ROOT/bin" "$ROOT/lib" "$ROOT/hooks" "$ROOT/app" "$ROOT/bots" 
 put_file "$ROOT/bin/slackmod" 755 "$BUNDLE/bin/slackmod"
 put_file "$ROOT/lib/slackmod_config.py" 644 "$BUNDLE/lib/slackmod_config.py"
 put_file "$ROOT/lib/route_judge.py" 644 "$BUNDLE/lib/route_judge.py"   # «하위 라우터» example judge (harness.json session.jev_route argv)
+[ "$HAVE_REC" = 1 ] && put_file "$ROOT/lib/record.py" 644 "$BUNDLE/lib/record.py"   # «slackmod undo» (방금 설치 하나 되돌리기)
 put_file "$ROOT/hooks/pass.sh" 755 "$BUNDLE/hooks/pass.sh"
-put_file "$ROOT/contract.md" 644 "$BUNDLE/templates/main-contract.md"
+put_file "$ROOT/contract.md" 644 "$WORK/contract.md"   # = templates/main-contract.md (+ the opening line when children_open is set)
 put_file "$ROOT/contract-solo.md" 644 "$BUNDLE/templates/main-contract-solo.md"   # «하위 세션 쓰기 = 끔» bots (launch.sh SM_CONTRACT)
 put_file "$ROOT/config.example.json" 644 "$BUNDLE/config.example.json"
 PASS_SHA="$(sha_file "$BUNDLE/hooks/pass.sh")"
@@ -216,8 +261,10 @@ sync_tree() { # sync_tree <src> <dst> [more tree-fp args] — node_modules 는 �
   rm -rf "$dst.slackmod-new"
   cp -R "$src" "$dst.slackmod-new"
   [ -d "$dst/node_modules" ] && mv "$dst/node_modules" "$dst.slackmod-new/node_modules"
-  [ -d "$dst" ] && backup_path "$dst" move
+  local bk=""
+  if [ -d "$dst" ]; then backup_path "$dst" move; bk="$BACKUP/$(rel_home "$dst")"; fi
   mv "$dst.slackmod-new" "$dst"
+  rec tree "$dst" "$bk"
 }
 # K23: Claude Code writes its own type files into a plugin folder it loads (.claude-plugin/types/… · a root tsconfig.json)
 # — not shipped, so a re-run after any bot start must not call the folder changed and swap it under the running bot
@@ -269,7 +316,7 @@ while IFS=$'\t' read -r kind a b c; do
   case "$kind" in
     BOT) ensure_dir "$ROOT/bots/$a" 755
          ensure_dir "$ROOT/bots/$a/slack" 700
-         if [ -d "$b" ]; then act SAME "작업 폴더 $b"; else act DIR "작업 폴더 $b"; [ "$DRY" = 1 ] || mkdir -p "$b"; fi ;;
+         if [ -d "$b" ]; then act SAME "작업 폴더 $b"; else act DIR "작업 폴더 $b"; [ "$DRY" = 1 ] || mkdir_rec "$b"; fi ;;
     ALIAS) ALIASES+=("$a") ;;
     RC) RC_STAGED="$a" ;;
   esac
@@ -298,14 +345,29 @@ done
 # ── 5. 켜기 이름(별칭) ───────────────────────────────────────────────────────────────────────────────────────────────
 say ""
 say "5) 켜기 이름 → $RC_FILE"
+# a shell settings file that is a link (a dotfiles folder): the real file behind it is what is backed up, written and recorded —
+# undo writes the old bytes back into that real file, so the link stays a link
+RC_REAL="$RC_FILE"
+if [ -L "$RC_FILE" ] && [ -n "$PY_BIN" ]; then
+  RC_REAL="$("$PY_BIN" -I -c 'import os, sys
+p = sys.argv[1]; real = os.path.realpath(p); q = p
+for _ in range(40):
+    if not os.path.islink(q):
+        break
+    q = os.path.normpath(os.path.join(os.path.dirname(q), os.readlink(q)))
+print(q if os.path.realpath(q) == real else real)' "$RC_FILE")" || RC_REAL="$RC_FILE"
+  [ -n "$RC_REAL" ] || RC_REAL="$RC_FILE"
+fi
 ALIAS_ARGS=()
 for a in ${ALIASES[@]+"${ALIASES[@]}"}; do ALIAS_ARGS+=(--alias "$a"); done   # bash 3.2: an empty array (blank mode) is not «unbound»
 r="$("${CFG_PY[@]}" rc-merge --rc "$RC_FILE" --block "$RC_STAGED" --out "$WORK/rc.new" ${ALIAS_ARGS[@]+"${ALIAS_ARGS[@]}"})"
 if [ "$r" = same ]; then act SAME "$RC_FILE (SlackMod 칸)"; else
   act WRITE "$RC_FILE (SlackMod 칸 · 이름 ${ALIASES[*]:-없음})"
   if [ "$DRY" = 0 ]; then
-    [ -f "$RC_FILE" ] && backup_path "$RC_FILE" copy
-    cat "$WORK/rc.new" > "$RC_FILE"
+    if [ -f "$RC_REAL" ]; then
+      m0="$(mode_of "$RC_REAL")"; backup_path "$RC_REAL" copy; rec rc "$RC_REAL" "$BACKUP/$(rel_home "$RC_REAL")" "$m0"
+    else rec rc "$RC_REAL"; fi
+    cat "$WORK/rc.new" > "$RC_REAL"
   fi
 fi
 
@@ -319,8 +381,22 @@ if [ -d "$ROOT" ]; then
   FP="$(printf '%s %s' "$T1" "$T2" | { if command -v sha256sum >/dev/null 2>&1; then sha256sum; else shasum -a 256; fi; } | cut -d' ' -f1)"
   [ "$DRY" = 1 ] || printf '%s\n' "$FP" > "$ROOT/state/install.fp"
 fi
+# where this kit is and how it was run — «slackmod set-effort» runs the same installer again to remake launch.sh (state/ is
+# outside the fingerprint · written only when different, so a second run leaves the folder as it was)
+put_state() { # put_state <name> <text>
+  [ "$(cat "$ROOT/state/$1" 2>/dev/null || true)" = "$2" ] || printf '%s\n' "$2" > "$ROOT/state/$1"
+}
+if [ "$DRY" = 0 ] && [ -d "$ROOT/state" ]; then
+  put_state bundle-path "$BUNDLE"
+  put_state install-args "$(printf -- '--rc\n%s' "$RC_FILE"; [ "$NPM_STEP" = 1 ] || printf '\n--no-npm')"
+fi
+REC_SAY="$(rec_finish)"; REC_DONE=1   # (the $(…) runs in a subshell — mark it done here so the EXIT trap does not run it twice)
 say "결과: 바뀜 $CHANGED · 그대로 $SAME · 지문 ${FP:0:16}$( [ "$DRY" = 1 ] && echo ' (미리 보기 — 아무것도 안 씀)')"
 [ "$DRY" = 1 ] || [ "$CHANGED" -eq 0 ] || say "백업: $BACKUP (바뀐 것이 있을 때만 생김)"
+case "$REC_SAY" in
+  되돌리기\ 기록:*) say "되돌리기: slackmod undo (방금 설치 하나만 · 봇 slack/.env 의 토큰은 그대로) · ${REC_SAY}" ;;
+  *주의*) say "$REC_SAY" ;;   # the record could not be finished — say so (undo would otherwise say «되돌릴 설치가 없습니다» later)
+esac
 if [ "$DRY" = 0 ]; then
   say ""
   say "다음:"

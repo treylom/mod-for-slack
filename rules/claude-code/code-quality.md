@@ -1,0 +1,99 @@
+# Rule: Code quality · regression prevention · debug artifacts
+
+Trigger: receiving a bug report, about to modify a file, about to claim "fixed/done", after resolving a non-trivial bug.
+
+## 1. Prove It
+- Bug report → **reproduce → fix → prove**, in that order. No speculative patching ("I think this fixes it" = failure mode).
+- No root cause identified = no fix. Can't reproduce = gather more data, don't guess. Never apply a phantom fix to a file you haven't verified exists.
+- **Read the gate's definition before prescribing on its FAIL (added 2026-07-29)**: for a *non-obvious* gate/check failure, open the gate's own definition (code / docstring) once before prescribing — a correct diagnosis can still yield a reversed prescription when the reader guesses what the gate measures (real case: the misreading was spelled out in the gate's own docstring; a reading-layer defect doesn't shrink by adding more gates). After the repair, re-measure with the **same gate** and confirm the FAIL→PASS transition. Non-obvious failures only; situational judgment, the user's call wins.
+
+## 2. Before modifying a file
+- List what currently works → analyze blast radius → modify → verify. Write down what could break *before* touching it.
+- **Regression attribution (2026-11-02)**: say "this was already in the baseline" only from running the **same original input** through both the baseline and the candidate. A result from a similar input with a changed tail does not count (thirteen attributions had to be corrected after this mistake).
+
+## 3. Verification matched to the change's impact (2026-10-12 — replaces the fixed three-step check)
+- Wording changes and low-risk, reversible edits: compare the result directly against the intent (only the intended change went in).
+- Behavior changes: run tests that exercise the affected behavior.
+- Shared or security-relevant changes: run the related integration tests and get an independent review.
+- Once the checks the change needs have passed, widen or repeat testing only for a new change, a failure, or an unresolved concern. Permission, security, data-loss checks and checks on real delivery to recipients are never dropped.
+- Never claim done without the verification that fits the change.
+- **Verifiers carry the same evidence bar (added 2026-07-29)**: before *declaring RED* on a web/rendered deliverable — not only before claiming GREEN — measure the delivery surface once (final HTTP status after redirects, rendered output), not static source parsing alone; static-only analysis has mis-attributed a RED to a healthy deliverable. Separate source-layer defects (warn) from delivery-layer defects (hard). Situational judgment; the user's call wins.
+
+## 4. Don't conclude absence from limited observation
+- Never assert "tool/feature/field doesn't exist / can't do X" from a small-limit, single-sample, default-parameter observation.
+- **Boundary**: push limit/range/timeout/depth to max — if results change it was a cutoff/ranking issue, not absence.
+- **Isolation**: re-test with input that isolates exactly the capability in question.
+- When checking "is it empty", scan **all file types** (`find -type f`), not just one extension — a `*.md` filter hides strays.
+
+## 5. Verify the "it's broken" premise before building a workaround
+Before building a tool/daemon/workaround on the belief that an external tool is broken: (a) measure in *your* environment/version, (b) read the official docs directly for a control lever, (c) don't rely on bug trackers alone (they collect failures, not the working pattern). A wrong premise turns into a whole wasted build.
+
+## 6. Debug artifact contract (after fixing a non-trivial bug)
+Leave a debug artifact with **fixed sections, fixed order** (don't end at "fix commit + one progress line"):
+① Problem (symptom·repro) → ② Hypotheses (**≥3, on different axes** — environment/dependency/state/control-flow) → ③ Investigation (evidence accepting/rejecting each) → ④ Root Cause → ⑤ **Detection Gap** (why existing tests/hooks/checks missed it) → ⑥ **Sibling Search, 4 axes** (same file / adjacent module / same design decision / same symptom elsewhere — report each axis, "skipped" ❌) → ⑦ Prevention (which test/hook/rule now blocks recurrence).
+- **Trivial escape hatch**: typo/config-slip class bugs skip the full artifact, but must declare `n/a — trivial fix` explicitly (silent omission ❌). Trivial = root cause 1-hop obvious AND sibling probability structurally zero.
+- **Trigger extension + how to actually search siblings (added 2026-07-29)**: the sibling search fires after *any applied prescription*, not only after bug fixes — prescriptions also replicate sibling defects and sibling omissions. Method for the "same design decision" axis (a method, not a new axis): ㉠ state the defect's **invariant in one sentence** (e.g. "a positive closing label covers both verified and unverified"), ㉡ search by behavior / state transition / IO contract — not name literals alone — and record an apply/not-apply judgment per candidate, ㉢ on finding the shape, **immediately hand that one sentence to the owners of the other surfaces** to check their own — registering a lesson fixes "search failure" but not "nobody revisits" (measured: a filed record unfound for 3 days; one's own action item untouched for 8; one's own warning violated 4 hours later). Situational judgment; the user's call wins.
+- §6 is the *post-fix* counterpart of §1 (Prove It = before, artifact = after: knowledge asset).
+
+## 7. Verification ladder — state WHICH grade your "verified" means
+"GREEN / verified / passed" claims must state the verification grade. Different agents mean different things by "verified" — naming the grade closes that gap (e.g. a doc *claiming* an artifact exists vs. the artifact actually existing).
+- **Ladder (low → high)**: ① **deterministic** — automated checks / script asserts (seconds) → ② **scenario replay** — real-scenario reproduction / e2e round-trip (minutes) → ③ **evaluator** — independent evaluator / cross-engine review → ④ **human review**.
+- A GREEN that only passed a lower rung must say so (e.g. "GREEN — ① deterministic only"). **No silent downgrade** — never substitute a lower rung where a higher one was required. Executable proof > eyeballing code.
+- **JSON form**: new automation outputs carry `schema_version` + `proof_class` (e.g. fixture-smoke / in-process / live). Retrofit existing outputs only on next touch — no bulk backfill.
+- §3 says *what* to verify; §7 names *at which grade* you verified it.
+- **Validity threats + benchmark fixture convention**: ① **Threats to validity** — a non-trivial verification / experiment / benchmark conclusion carries an explicit list of "why you might *not* trust this result" (sample size, measurement scope, generalization limits, n=1 noise) as named items, not one line of prose. ② **Benchmarks = fixtures + raw output + threats** — experiments and benchmarks use fixed fixtures (deterministic inputs) + preserved raw output (e.g. JSON) + a threats note, so they reproduce. Both are a lightweight extension of the §7 ladder (existing discipline unchanged, no new hard gate).
+- **When the final judgment is human taste, measure once at n≥18 then escalate — no self-convergence loop**: for a metric whose final acceptance is a person's preference (game balance, tone, design taste), don't keep re-measuring to converge on the "right" number yourself. Measure once at n≥18 (probabilistic outcomes need n≥18 — a small sample's 0/N can be chance), then escalate the range/candidate early ("is this range OK?") and let the human make the call. If the judge is a person but the bot self-converges, that's over-verification overrun (opportunity cost — an afternoon burned on precision nobody asked for). Situational judgment; user's final call wins.
+- **Limits split three ways, each with a closing condition**: any threats/limits
+  declaration labels each item as **undetermined** (measured, no rule found) /
+  **unmeasured** (not measured yet) / **out-of-scope** (our tools cannot open
+  it), and attaches a one-line closing condition — what concrete step would
+  close the item. No closing condition = say so explicitly ("accepted, no
+  closing condition") instead of staying silent. Applies wherever limits are
+  declared, inline forms included.
+- **Wide-commit reading guard**: for authored commits touching more than ~50
+  files, never judge content from the title — run `git show --numstat` once
+  first (with an explicit exclusion set for auto-generated commit patterns).
+  The judgment axis: "does the title's reach actually cover this many files?"
+- **Prescription-side threats + prototype-first + a falsification question (added 2026-07-29)**: ⓐ a *non-trivial prescription* (repair plan, structural change, new mechanism) carries its own threats item — "**what new loss does this prescription create**" — because diagnosis sections tend to be measured while prescription sections are only reasoned (observed asymmetry: a "zero loss" claim that wasn't; 1 measured vs 4 inferred claims). Small local fixes exempt. ⓑ Oversized prescriptions have **two separate causes with two separate fixes** — cause 1, *didn't know the stock*: before a non-trivial structural change, compare against existing mechanisms/fields/consumers once; for shared infrastructure or multi-consumer changes add a domain owner or implementation-adjacent reviewer (conditional, not universal). Cause 2, *never ran it*: if the prescription is runnable, **run a prototype first** (two observed cases cost ~15 min each) — only when the target is executable; never mandated for non-runnable plans. Practical order: run → compare → review. ⓒ Self-check phrasing: not "I may have overdone it" (an admission that ends there) but "**is there an observation this conclusion cannot explain?**" (a falsification question that forces work). Evidence basis: two independent observers, two cases each — a tendency, not a law. Situational judgment; the user's call wins.
+
+## 8. Code-generation minimalism gate
+Before generating code, run a 6-rung ladder as a reflex (not a research project — stop at the first rung that holds):
+**① Does this need to exist? (YAGNI — if speculative, skip it and say so in one line) → ② Stdlib does it? → ③ Native platform feature? → ④ Already-installed dependency? → ⑤ One line? → ⑥ Only then: the minimum that works.**
+- **Lazy ≠ negligent**: trust-boundary validation, data-loss handling, security, accessibility, and verification (§3/§7) are never on the chopping block.
+- Mark a deliberate simplification with a `ponytail:` comment naming its ceiling + upgrade path (e.g. `# ponytail: global lock, per-account if throughput matters`) — no silent shortcuts.
+- Rung ① (YAGNI) is the key gap, complementary to §5 (verify a "broken" premise before building a workaround) and the role/autonomy boundary — it catches over-build and wrong-premise builds before the first line.
+- A **review gate** (inform-the-human, not a universal mandate). Token/cost savings are conditional (on simple tasks the skill-read tax can make it *worse*) — the value is less code / fewer files and avoiding wrong builds, not guaranteed cost savings. Origin: the Ponytail ruleset (MIT, github.com/DietrichGebert/ponytail) 6-rung ladder.
+
+▶ Fill in: where your team records deliberate simplifications and their upgrade paths.
+
+## 9. Feature completion = full click-through + requester-intent diff + one adversarial pass (added 2026-07-05)
+Before reporting a UI/feature implementation "done" (or cutting over), three axes:
+1. **Full click-through**: actually walk every interaction path of the new/changed feature (each card type, button, link at least once) — a real-screen pass, separate from automated e2e.
+2. **Requester-intent diff**: quote the original instruction → item-by-item table against actual behavior — comparing against "our own spec" ❌; compare against the requester's wording.
+3. **One adversarial pass**: one line asking "would anything look wrong if the user clicked around?" (fix before reporting if something turns up).
+- Background: an automated-e2e GREEN passed a page that rendered only the summary with the full text missing — the user's real clicks caught it. Situational judgment (non-UI / small changes) and the user's final feedback win.
+
+### §3 reinforcement (2026-07-05)
+- **Web deliverables: verify the final response, not a source grep**: judging "it's live" for a web page / external URL takes (a) the measured **final** HTTP status (after following redirects) + content-type + bytes, and (b) render-side confirmation (SSR can split strings across comment boundaries, so a contiguous-string grep can 0-hit falsely — probe with separated tokens). Grepping the source/references is only a pre-filter, never completion evidence.
+- **Pipeline shells: capture the exit of the step you depend on directly**: if a later step (rotation, commit, post-send) depends on an earlier command succeeding, run that command alone and capture its exit directly (`set -o pipefail` or drop the pipe) — `$?` after `cmd | tail` is tail's exit, so failures get masked.
+
+### §3 reinforcement (2026-07-12)
+- **Never merge/pull on a dirty tree in a shared repo — merge in an isolated worktree**: git's merge path on a dirty tree is not read-only. Once a merge strategy actually starts, git first snapshots your uncommitted changes (stash create); if the merge then fails or aborts mid-run (distinct from the read-only pre-flight refusal that touches nothing), it restores via `read-tree --reset -u HEAD` + `stash apply` — and that apply's failure is **silently ignored**, so your uncommitted work can be rolled back with no error shown. Do merges/pulls in an isolated worktree (`git worktree add --detach <dir>`), push from there, then remove it; afterwards re-measure the shared tree (`git status --short | wc -l`) instead of trusting a stale count. If work does go missing: `git fsck --dangling` → date-filter the "WIP on …" stash snapshots → recover from them.
+- **A worktree boundary is a path, not a repo (operator-approved 2026-09-16)**: worktrees of the shared vault repo are allowed — but never write knowledge-base notes (the vault's note folder) from inside a worktree: hooks resolve absolute paths against the main checkout, so the live vault never receives the write and nothing signals it. New worktree = `git worktree add --no-checkout` + sparse-checkout that excludes the vault note tree · worktrees idle 4+ weeks are reclaimed by a scheduled sweep · enforcement = a warn-first gate (log → warn; no one-step block).
+
+### §3 reinforcement (2026-10-26) — rendered line breaks in anything published (operator directive)
+- **Scope**: every agent, every outward-facing deliverable — decks, card news, HTML pages, videos and subtitles, text inside images, PDFs.
+- **When**: once, right before delivery, on the **rendered** output (screenshots, video frames, PDF pages). Reading the source text or the CSS and calling it done is not enough.
+- **What**: check the end and start of every line. Fail on any of: a word split mid-word · a short grammatical word cut off from the word it belongs to and pushed to the next line (e.g. a Korean postposition such as 은/는/을/를) · a break inside parentheses · a line that starts with a middle dot, a comma or such a cut-off word · a number separated from its unit. It passes only when none of these appear.
+- **Evidence**: one line-list table (page/frame · line text · verdict) kept next to the deliverable.
+- A CSS check (for example, that `word-break: keep-all` is present) does not replace this rendered-line check.
+- Background: a video subtitle whose second line began with a middle-dot fragment shipped unnoticed; the operator made the rendered-line check the default for all public work.
+
+▶ Fill in: your render/capture tool; an automated render → line-extract → verdict checker, if you build one.
+
+### §4 reinforcement (2026-07-05)
+- **"The file never existed" only after `git log --all`**: don't conclude that a file absent from the working tree/HEAD "never existed" — it may have landed on another branch (real case: an auto-commit hook committed docs onto a feature branch that happened to be checked out). The git flavor of boundary expansion.
+
+## Detectors ≠ gates — ask the action question separately
+
+A detector asks "is this value wrong?"; a gate asks "may this action happen?". They fail on different layers: an instruction can pass every value check and still be wrong at the action layer (stale premise, missing authority, non-exportable secret). Before risky actions (credentials, exports, destructive ops, outbound orders) ask the gate question once, **independently of value truth**. When a defense works as a **by-product** (built for another purpose), record that it was not designed for this — by-product defenses fail together at the next variant. Case-based (2026-07-25, fixed-sample observation: value detectors did not catch the errors that an action-layer refusal gate later stopped; the ratio is not established — one mechanical detection success exists on a separate axis); re-judge per situation; the maintainer's call wins.

@@ -13,6 +13,7 @@ Slack 채널에 메시지를 보내면 봇이 받고, 여러 단계가 걸리는
 | `install.sh` | 설치 · 갱신(두 번 실행해도 결과 같음 · `--dry-run` = 미리 보기) |
 | `bin/slackmod` | 켜기 · 끄기 · 상태 · 토큰 넣기 · 판정기 키 넣기 · Windows 쪽 겹침 확인 |
 | `config.example.json` | 설정 1개의 모양(봇 2개 · 채널 · 작업 폴더) |
+| `slack-app-manifest.json` | Slack 앱 매니페스트(봇 하나에 앱 하나 · api.slack.com → Create New App → Paste a manifest · 자세한 순서와 화면 = 저장소의 `docs/slack-app.md`) |
 | `app/mods-harness` | 하위 세션을 여는 Claude Code 플러그인 |
 | `app/channel-server` | Slack 다리(Slack ↔ Claude Code) |
 | `hooks/pass.sh` | 하위 세션 플러그인(`app/mods-harness`)이 도구 호출마다 거치는 관문 자리(지금은 모두 통과) |
@@ -28,7 +29,7 @@ Slack 채널에 메시지를 보내면 봇이 받고, 여러 단계가 걸리는
 4. 설치: `bash install.sh` → 끝 줄 «결과: 바뀜 N · 그대로 M · 지문 …»
 5. 다시 한 번 `bash install.sh` → «바뀜 0» 이면 정상(같은 지문).
 6. `source ~/.bashrc`
-7. 봇마다 토큰: `slackmod set-token chonggwal` (붙여 넣어도 화면에 안 보임 · 봇마다 Slack 앱이 따로여야 함)
+7. 봇마다 토큰: `slackmod set-token chonggwal` (붙여 넣어도 화면에 안 보임 · 봇마다 Slack 앱이 따로여야 함 · 앱이 없으면 `slack-app-manifest.json` 으로 만들기 — 그 안 `name`·`display_name` 을 봇 이름으로)
 8. Windows 겹침 확인: `slackmod check-windows` — Windows 쪽에서 같은 Slack 앱을 켜 둔 창이 있으면 먼저 닫습니다(두 곳이 동시에 켜지면 Slack 이 메시지를 나눠 보내 한쪽이 못 받음).
 9. 켜기: 봇 하나씩 `chonggwal` · `docbot`(이미 켜져 있으면 그 봇만 끄고 새 대화로 켠 뒤 그 화면으로 들어감 · 켠 직후 30초쯤 온 Slack 글은 다시 보내기) / 한 번에 `allbots` · 끄기 `chonggwal-stop` · `allbots-stop`
 10. 처음 켠 봇은 확인 화면이 뜹니다: `slackmod attach chonggwal` → 폴더 신뢰 · 권한 건너뛰기 경고 = 처음 한 번, 커서가 «No, exit» 에 있으니 아래 화살표로 «Yes» → Enter(그냥 Enter = 봇 꺼짐) · 개발 채널 확인 = 켤 때마다(`slackmod start` 가 대신 고름 · 끄기 `SLACKMOD_NO_AUTO_DEVCHANNEL=1`) → 나오기 `Ctrl+b` 뗀 뒤 `d`
@@ -48,7 +49,7 @@ Slack 채널에 메시지를 보내면 봇이 받고, 여러 단계가 걸리는
 
 ## Slack 앱 확인 (봇마다)
 
-- api.slack.com → 그 앱 → Event Subscriptions 에 `message.channels` · `app_mention` · `message.im` 이 있어야 합니다. `message.channels` 가 없으면 멘션 없는 스레드 글을 Slack 이 아예 안 보냅니다.
+- api.slack.com → 그 앱 → Event Subscriptions 에 `app_mention` · `message.im` 이 있어야 합니다(동봉 `slack-app-manifest.json` 기본값). `message.channels` 는 선택입니다 — 없으면 멘션 없는 채널 글(봇이 답하던 스레드의 이어 쓰기 포함)을 Slack 이 아예 안 보내니, 그런 글까지 받거나 아래 «멘션 없는 봇 글 알림»을 쓰려면 더하세요.
 - 봇끼리 일을 넘기려면: 설정 `bots[].slack_bot_user_id` 에 두 봇 ID 를 모두 채웁니다(서로 허용). 봇이 쓴 글은 받는 봇을 `@이름`(멘션)으로 불러야 전달됩니다 — 사람 글과 다릅니다. 봇 사이 DM 은 안 됩니다.
 - 버림 알림(기본 켬): 허용 안 된 봇이 부르거나, 허용된 봇이 멘션 없이 쓰면 그 스레드에 «전달 안 됨» 알림이 뜹니다. 끄려면 설정 `slack.drop_notice` · `slack.drop_notice_no_mention` 을 false 로 바꾼 뒤 install.sh 다시.
 - 멘션 없는 봇 글 알림(`slack.drop_notice_no_mention`): 한 채널에 봇이 2개면 둘 다 켜 둬도 됩니다(알림 = 채널당 30분에 1통 이하). 봇이 3개 이상이면 받는 쪽 1~2개만 켜고 나머지는 false — 다 켜면 상대 봇의 평소 답에도 알림이 겹쳐 뜹니다.

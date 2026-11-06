@@ -53,7 +53,7 @@ miss2=""
 for w in 'detect.sh' 'import.sh' 'plan.py' 'open-terminal.sh' 'find-installer.sh' 'optional.sh' 'role-default.sh'; do grep -q "$w" "$SKILL" || miss2="$miss2 $w"; done
 [ -z "$miss2" ] && ok "SKILL.md uses all seven lib entry points (detect · import · plan · open-terminal · find-installer · optional · role-default)" || no "SKILL.md never mentions:$miss2"
 miss3=""
-for w in '빠른' '전체' '빈 판' '① 창 도구' '② Slack' '③ 위키' '④ MCP' '⑤ 코덱스' '⑥ 점검 스킬' '⑦ 브라우저' '⑧ 메모리' '⑨ 하위 세션 쓰기' '⑨-1 하위 라우터' '동봉 판정기 쓰기' 'slackmod set-judge-key' '질문 4개 이하' '선택지 2~4개' '설치할까요' '토큰·비밀번호는 묻지도 받지도 않습니다' '읽기만' '원본 지문 전후' '--answers' '--section' 'install.sh --plan' '요약: OK n' 'MODS_SETUP_NO_OPEN'; do grep -q -- "$w" "$SKILL" || miss3="$miss3 [$w]"; done
+for w in '빠른' '전체' '빈 판' '① 창 도구' '② Slack' '③ 위키' '④ MCP' '⑤ 코덱스' '⑥ 점검 스킬' '⑦ 브라우저' '⑧ 메모리' '⑨ 하위 세션 쓰기' '여는 말' 'children_open' '설치 검사기가 받지 않음' '⑨-1 하위 라우터' '동봉 판정기 쓰기' 'slackmod set-judge-key' '질문 4개 이하' '선택지 2~4개' '설치할까요' '토큰·비밀번호는 묻지도 받지도 않습니다' '읽기만' '원본 지문 전후' '--answers' '--section' 'install.sh --plan' '요약: OK n' 'MODS_SETUP_NO_OPEN'; do grep -q -- "$w" "$SKILL" || miss3="$miss3 [$w]"; done
 [ -z "$miss3" ] && ok "SKILL.md keeps the fixed parts (3 modes · 9 columns · ≤4 questions × 2-4 choices · 설치할까요 · secrets never asked · read-only originals · fingerprint line · both args · --plan · summary line · no-open switch)" || no "SKILL.md lost:$miss3"
 n="$(grep -c '설치할까요' "$SKILL")"
 [ "$n" -ge 1 ] && ok "SKILL.md: the install confirmation question exists (mentioned ${n}×)" || no "no confirm"

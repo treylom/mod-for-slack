@@ -9,10 +9,25 @@
 The shape = the contract «setup.json» (design doc, section 5): {schema:1, mode, mux, slack:{enabled, channel_id, owner_user_id, guests},
 wiki:{path|null}, mcp:[], codex, doctor, browser, memory, children, bots:[{name, role, work_dir, source, persona_dir}], import:{from:[], to}}.
 children = «하위 세션 쓰기» (true/false · default true): false = the bots get no child-session tools and the contract without them.
+children_open = «여는 말» (one line of 1~80 characters · default «하위 세션이 맡았어요»): the words the bot leaves in a thread it opened a child
+session in — the installer puts them into the one line of contract.md that holds the default (contract-solo.md never changes). No line
+break / control character, no « or », nothing token-shaped (rc 2); --normalize always writes it, right after «children».
 router = «하위 라우터(판정 모델이 고름)» {mode: off | shadow | on, judge: "bundled" | [command words]} (default off): an owner
 message that reached the bot while its child sessions work in other threads → a judge program picks the child it belongs to.
 shadow = judge and record only · on = the picked child gets it too · shadow/on need a judge · off (or children false) = nothing written.
-Optional per bot: slack_bot_user_id · model (the installer carries them into the bot's config).
+Optional per bot: slack_bot_user_id · model · effort («생각 깊이»: '' = account default, or low · medium · high · xhigh · max) ·
+projects («작업 폴더»: up to 20 absolute folders the bot may work in, not its own work_dir · not «/» or HOME itself · no repeats) —
+the installer carries them into the bot's config (effort → launch.sh SM_EFFORT · projects → .claude/settings.json additionalDirectories + a rules file).
+A bot's work_dir may not be HOME itself or a folder above it (it would hold ~/.slackmod, where the bots' tokens are).
+More columns (all optional · --normalize always writes them, in this order, after «import»):
+  history {read: bool}                       read the Claude Code conversation history for counts only (default true)
+  interview {when: now | later | skip}       ask about the person's work now, later, or not at all (default later)
+  pending [work|projects|recommend|models|memory|slack|effort]   columns left for later (default [])
+  recommend {take: [id], declined: [id]}     recommended add-ons taken / declined (ids: a-z 0-9 @ . _ - · default empty)
+  memory_setup {starter: bool, starter_path: abs|null, external_probe: ok | fail | not-run}
+                                             starter = make the kit's notes folder (default <home>/SlackModWiki · skipped when
+                                             wiki.path is set) · external_probe = the connection test of «memory» hindsight / kumiho:
+                                             anything but ok → rc 2 (an outside memory is saved only after its test passed)
 There is no secret column: a key named like a token / secret / password, or a value shaped like a token, is refused (rc 2) —
 the value itself is never printed. Tokens go in only through «slackmod set-token <bot>» in a terminal.
 A file that leaves a column out gets that column's recommended default (--normalize) — so a short answers file works.
@@ -22,6 +37,7 @@ import json
 import os
 import re
 import sys
+import unicodedata
 
 NAME = re.compile(r'^[a-z][a-z0-9-]{0,31}$')
 ROLE = re.compile(r'^[a-z][a-z0-9-]{0,31}$')
@@ -30,6 +46,7 @@ CHAN = re.compile(r'^[CG][A-Z0-9]{8,12}$')
 USER = re.compile(r'^[UW][A-Z0-9]{8,12}$')
 GUEST = re.compile(r'^U[A-Z0-9]{8,}$')
 MODEL = re.compile(r'^[A-Za-z0-9._\[\]-]{1,60}$')
+RECO_ID = re.compile(r'^[a-z0-9][a-z0-9@._-]{0,80}$')                     # recommend take / declined ids
 ITEM = re.compile(r'^[a-z0-9-]{1,30}:[A-Za-z0-9._-]{1,100}$')   # detect.sh item ids: kind:name
 BAD_PATH_CHARS = set('\n\r\t\'"$`\\')
 SECRET_SHAPE = re.compile(r'(?<![A-Za-z0-9])(xox[abprs]-|xapp-|sk-[A-Za-z0-9_-]{10,}|ghp_|gho_|ghs_|github_pat_|AKIA[0-9A-Z]{8}|AIza[0-9A-Za-z_-]{10})')
@@ -40,14 +57,25 @@ MUX = ('auto', 'tmux', 'cmux', 'herdr', 'orca')
 BROWSERS = ('playwright', 'aside', 'none')
 MEMORIES = ('later', 'hindsight', 'kumiho')
 SOURCES = ('import', 'role-default', 'blank')
+EFFORTS = ('low', 'medium', 'high', 'xhigh', 'max')   # «생각 깊이» — the same list as slackmod_config.py EFFORTS
+INTERVIEW_WHEN = ('now', 'later', 'skip')
+PENDING = ('work', 'projects', 'recommend', 'models', 'memory', 'slack', 'effort')
+PROBES = ('ok', 'fail', 'not-run')
+EXTERNAL_MEMORIES = ('hindsight', 'kumiho')       # outside memory services: saved only after the connection test passed
+MAX_PROJECTS = 20
 ROLE_DEFAULTS = ('lead', 'watch', 'research')   # 총괄 · 감시/일정 · 조사
 RESERVED_NAMES = ('slackmod', 'allbots', 'allbots-stop')
 ROUTER_MODES = ('off', 'shadow', 'on')           # 끔 · 기록만 · 켬 (the harness's own words — any other word would read as off)
 BUNDLED_JUDGE = 'bundled'                        # the example judge the kit installs (it reads its key from the bot's .env)
-KEYS = {'': ('schema', 'mode', 'mux', 'slack', 'wiki', 'mcp', 'codex', 'doctor', 'browser', 'memory', 'children', 'router', 'bots', 'import'),
+CHILDREN_OPEN_DEFAULT = '하위 세션이 맡았어요'      # the text inside «» on port/templates/main-contract.md line 9
+CHILDREN_OPEN_MAX = 80
+KEYS = {'': ('schema', 'mode', 'mux', 'slack', 'wiki', 'mcp', 'codex', 'doctor', 'browser', 'memory', 'children', 'children_open', 'router', 'bots', 'import',
+             'history', 'interview', 'pending', 'recommend', 'memory_setup'),
         'slack': ('enabled', 'channel_id', 'owner_user_id', 'guests'),
         'wiki': ('path',), 'import': ('from', 'to'), 'router': ('mode', 'judge'),
-        'bot': ('name', 'role', 'work_dir', 'source', 'persona_dir', 'slack_bot_user_id', 'model')}
+        'history': ('read',), 'interview': ('when',), 'recommend': ('take', 'declined'),
+        'memory_setup': ('starter', 'starter_path', 'external_probe'),
+        'bot': ('name', 'role', 'work_dir', 'source', 'persona_dir', 'slack_bot_user_id', 'model', 'effort', 'projects')}
 
 
 def safe_key(k):
@@ -80,6 +108,11 @@ def expand(p, home):
     return p
 
 
+def holds(folder, p):
+    """folder is p or a folder above p (normalized absolute paths)."""
+    return p == folder or p.startswith(folder.rstrip('/') + '/')
+
+
 def abs_ok(p):
     return isinstance(p, str) and p.startswith('/') and not any(c in BAD_PATH_CHARS for c in p) and '..' not in p.split('/')
 
@@ -94,6 +127,22 @@ def judge_words_ok(j):
             and not j[0].startswith('-'))
 
 
+def children_open_problems(v, where):
+    # one line, 1~80 characters, not only spaces · no control character (line break · tab · NUL …) · no «» (they mark the spot in contract.md)
+    # · a token-shaped value is already refused by secret_findings() above (one message, never the value) — nothing more to say here
+    if not isinstance(v, str):
+        return [where + ': 문자열이어야 합니다 — 스레드에 남길 여는 말 한 줄(1~%d자)' % CHILDREN_OPEN_MAX]
+    if SECRET_SHAPE.search(v):
+        return []
+    if not 1 <= len(v) <= CHILDREN_OPEN_MAX or not v.strip():
+        return [where + ': 1~%d자여야 합니다(공백만은 안 됨)' % CHILDREN_OPEN_MAX]
+    if any(unicodedata.category(c) in ('Cc', 'Zl', 'Zp') for c in v):
+        return [where + ': 한 줄이어야 합니다 — 줄바꿈 · 탭 같은 제어 문자는 넣을 수 없습니다']
+    if '«' in v or '»' in v:
+        return [where + ': « » 는 넣을 수 없습니다(규칙 글에서 이 글의 자리를 표시하는 괄호입니다)']
+    return []
+
+
 def router_problems(rt, where):
     if not isinstance(rt, dict):
         return [where + ': 객체여야 합니다 — {"mode": "off"} 꼴']
@@ -106,6 +155,55 @@ def router_problems(rt, where):
         out.append(where + '.judge: "bundled"(동봉 판정기) 또는 판정 명령 낱말 목록(1~16개 · 한 줄씩 · 첫 낱말은 프로그램)')
     elif j is None and mode in ('shadow', 'on'):
         out.append(where + '.judge: 기록만·켬 은 판정기가 있어야 합니다 — "bundled"(동봉 판정기) 또는 판정 명령 낱말 목록')
+    return out
+
+
+def new_column_problems(st, home):
+    """history · interview · pending · recommend · memory_setup (+ the outside-memory rule) → problem lines."""
+    out = []
+    for key, sub, word in (('history', 'read', None), ('interview', 'when', INTERVIEW_WHEN)):
+        if key not in st:
+            continue
+        v = st[key]
+        if not isinstance(v, dict):
+            out.append('setup.%s: 객체여야 합니다' % key)
+            continue
+        out += unknown_keys(v, KEYS[key], 'setup.' + key)
+        if sub in v:
+            if word is None and not isinstance(v[sub], bool):
+                out.append('setup.%s.%s: true 또는 false' % (key, sub))
+            elif word is not None and v[sub] not in word:
+                out.append('setup.%s.%s: %s 중 하나' % (key, sub, ' · '.join(word)))
+    pend = st.get('pending', [])
+    if not isinstance(pend, list) or any(x not in PENDING for x in pend) or len(set(map(str, pend))) != len(pend):
+        out.append('setup.pending: 나중에 할 칸 이름 목록(%s 중 · 중복 없음)' % ' · '.join(PENDING))
+    rc = st.get('recommend', {})
+    if not isinstance(rc, dict):
+        out.append('setup.recommend: 객체여야 합니다 — {"take": [], "declined": []} 꼴')
+    else:
+        out += unknown_keys(rc, KEYS['recommend'], 'setup.recommend')
+        for k in ('take', 'declined'):
+            v = rc.get(k, [])
+            if (not isinstance(v, list) or len(v) > 200 or len(set(map(str, v))) != len(v)
+                    or any(not isinstance(x, str) or not RECO_ID.fullmatch(x) or SECRET_SHAPE.search(x) for x in v)):
+                out.append('setup.recommend.%s: 추천 항목 id 목록(소문자·숫자·@ . _ - · 중복 없음)' % k)
+    ms = st.get('memory_setup', {})
+    probe = 'not-run'
+    if not isinstance(ms, dict):
+        out.append('setup.memory_setup: 객체여야 합니다 — {"starter": false, "starter_path": null, "external_probe": "not-run"} 꼴')
+    else:
+        out += unknown_keys(ms, KEYS['memory_setup'], 'setup.memory_setup')
+        if 'starter' in ms and not isinstance(ms['starter'], bool):
+            out.append('setup.memory_setup.starter: true 또는 false (기본 노트 폴더 만들기)')
+        sp = ms.get('starter_path')
+        if sp is not None and not abs_ok(expand(sp, home)):
+            out.append('setup.memory_setup.starter_path: 노트 폴더의 절대 경로, 또는 null(기본 <홈>/SlackModWiki)')
+        probe = ms.get('external_probe', 'not-run')
+        if probe not in PROBES:
+            out.append('setup.memory_setup.external_probe: ok · fail · not-run 중 하나')
+    if st.get('memory') in EXTERNAL_MEMORIES and probe != 'ok':
+        out.append('setup.memory: 연결 시험이 통과하지 않아 저장하지 않습니다 — 나중에로 두세요 (memory «later» · '
+                   '연결 시험 통과 = memory_setup.external_probe «ok»)')
     return out
 
 
@@ -129,8 +227,11 @@ def check(st, home):
     for k in ('codex', 'doctor', 'children'):
         if k in st and not isinstance(st[k], bool):
             out.append('setup.%s: true 또는 false' % k)
+    if 'children_open' in st:
+        out += children_open_problems(st['children_open'], 'setup.children_open')
     if 'router' in st:
         out += router_problems(st['router'], 'setup.router')
+    out += new_column_problems(st, home)
     mcp = st.get('mcp', [])
     if not isinstance(mcp, list) or len(mcp) > 8 or any(not isinstance(x, str) or not MCP_NAME.fullmatch(x) for x in mcp):
         out.append('setup.mcp: 이름 목록(소문자·숫자·-, 최대 8개)')
@@ -218,6 +319,9 @@ def check(st, home):
             if wd in wds:
                 out.append(where + '.work_dir: 다른 봇과 같은 폴더입니다')
             wds.append(wd)
+            # HOME itself, or a folder above it, would hold ~/.slackmod (the bots' tokens) inside the bot's own folder
+            if abs_ok(wd) and holds(os.path.normpath(wd), os.path.join(home, '.slackmod')):
+                out.append(where + '.work_dir: 봇 작업 폴더를 홈 폴더 전체로 둘 수 없습니다 — 그 안의 폴더 하나를 고르세요')
         sid = b.get('slack_bot_user_id', '')
         if sid not in ('', None) and (not isinstance(sid, str) or not USER.fullmatch(sid)):
             out.append(where + '.slack_bot_user_id: 비우거나 봇의 Slack 사용자 ID(U 로 시작)')
@@ -226,6 +330,19 @@ def check(st, home):
         m = b.get('model', '')
         if m not in ('', None) and (not isinstance(m, str) or not MODEL.fullmatch(m)):
             out.append(where + '.model: 비우거나 sonnet · opus 같은 모델 이름')
+        e = b.get('effort', '')
+        if e not in ('', None) and e not in EFFORTS:
+            out.append(where + '.effort: 비우거나(계정 기본) ' + ' · '.join(EFFORTS) + ' 중 하나')
+        if 'projects' in b:
+            pj = b['projects']
+            exp = [expand(x, home) if isinstance(x, str) else x for x in pj] if isinstance(pj, list) else None
+            if (exp is None or len(exp) > MAX_PROJECTS or any(not abs_ok(x) for x in exp)
+                    or len(set(os.path.normpath(x) for x in exp)) != len(exp)):
+                out.append(where + '.projects: 작업 폴더 절대 경로 목록(최대 %d개 · 중복 없음 · 따옴표·$ 없이)' % MAX_PROJECTS)
+            elif wd is not None and os.path.normpath(wd) in [os.path.normpath(x) for x in exp]:
+                out.append(where + '.projects: 봇 자신의 폴더(work_dir)는 작업 폴더 목록에 넣지 않습니다')
+            elif any(os.path.normpath(x) in ('/', home) for x in exp):
+                out.append(where + '.projects: «/» 나 홈 폴더 전체는 작업 폴더로 둘 수 없습니다 — 그 안의 폴더 하나를 고르세요')
     for n in names:
         if n + '-stop' in names:
             out.append('setup.bots: «%s» 와 «%s» 는 꺼짐 이름(…-stop)이 겹칩니다' % (n, n + '-stop'))
@@ -240,6 +357,14 @@ def normalize(st, home):
     wiki = st.get('wiki', {}) if isinstance(st.get('wiki'), dict) else {}
     imp = st.get('import', {}) if isinstance(st.get('import'), dict) else {}
     rt = st.get('router', {}) if isinstance(st.get('router'), dict) else {}
+    hist = st.get('history', {}) if isinstance(st.get('history'), dict) else {}
+    iv = st.get('interview', {}) if isinstance(st.get('interview'), dict) else {}
+    rc = st.get('recommend', {}) if isinstance(st.get('recommend'), dict) else {}
+    ms = st.get('memory_setup', {}) if isinstance(st.get('memory_setup'), dict) else {}
+    starter = ms.get('starter', False)
+    sp = expand(ms.get('starter_path'), home) if ms.get('starter_path') else None
+    if starter and sp is None:
+        sp = home + '/SlackModWiki'   # the kit's notes folder (port/templates/starter-wiki) — skipped by the installer when wiki.path is set
     wp = wiki.get('path')
     bots_in = st.get('bots')
     if bots_in is None:
@@ -253,6 +378,8 @@ def normalize(st, home):
         for opt in ('slack_bot_user_id', 'model'):
             if b.get(opt):
                 row[opt] = b[opt]
+        row['effort'] = b.get('effort') or ''
+        row['projects'] = [expand(x, home) for x in b.get('projects') or []]
         bots.append(row)
     return {
         'schema': 1, 'mode': mode, 'mux': st.get('mux', 'auto'),
@@ -261,9 +388,15 @@ def normalize(st, home):
         'wiki': {'path': expand(wp, home) if wp else None},
         'mcp': st.get('mcp', []), 'codex': st.get('codex', False), 'doctor': st.get('doctor', True),
         'browser': st.get('browser', 'playwright'), 'memory': st.get('memory', 'later'), 'children': st.get('children', True),
+        'children_open': st.get('children_open', CHILDREN_OPEN_DEFAULT),
         'router': {'mode': rt.get('mode', 'off'), 'judge': rt.get('judge')},
         'bots': bots,
         'import': {'from': imp.get('from', []), 'to': expand(imp.get('to'), home) if imp.get('to') else None},
+        'history': {'read': hist.get('read', True)},
+        'interview': {'when': iv.get('when', 'later')},
+        'pending': list(st.get('pending', [])),
+        'recommend': {'take': list(rc.get('take', [])), 'declined': list(rc.get('declined', []))},
+        'memory_setup': {'starter': starter, 'starter_path': sp, 'external_probe': ms.get('external_probe', 'not-run')},
     }
 
 

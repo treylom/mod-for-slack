@@ -1,0 +1,25 @@
+# recommend.tsv — what the setup wizard may suggest (read by setup/lib/recommend.py · tsv order = output order)
+# columns: id<TAB>layer(base|add)<TAB>source(ours|official)<TAB>when<TAB>title<TAB>why<TAB>how<TAB>overlaps
+# when = words joined by «,» (all must hold): always · wiki · nowiki · kind:code|writing|research|data · codex · os:Linux|Darwin · mcp:<name> · !mcp:<name>
+# overlaps = «,» words: equal to an installed plugin or skill name → «이미 있음» · shared with an earlier suggested row → «겹침:<id>»
+# official rows: names checked in the official marketplace list (claude-plugins-official) · {market} in how = that list's name
+# every add row needs a condition (none is «always»): an empty computer gets no suggestions, only the base layer
+base-memory	base	ours	always	기억 잇기	봇이 지난 대화에서 정한 것과 배운 것을 다음 대화에서도 이어서 기억합니다.	기본으로 들어 있음	
+base-search	base	ours	always	자료 찾기	내 노트 폴더에서 필요한 자료를 찾아 봇이 답할 때 씁니다.	위키 검색 칸에서 켭니다(이번 판은 연결 안내만)	
+base-help	base	ours	always	무엇을 쓰면 되나요?	무엇을 할 수 있는지, 어떤 기능을 쓰면 되는지 물으면 쉬운 말로 알려 줍니다.	기본으로 들어 있음(봇 폴더의 도움말 스킬)	
+base-doctor	base	ours	always	점검과 되돌리기	설치가 잘 됐는지 점검하고, 방금 한 설치가 마음에 들지 않으면 되돌립니다.	기본으로 들어 있음	
+knowledge-manager	add	ours	wiki	노트 폴더 정리 도우미	옵시디언 같은 노트 폴더에 자료를 모아 정리하고, 나중에 다시 찾기 쉽게 해 줍니다.	README «함께 쓰면 좋은 공개 저장소» 절의 두 줄(저장소 더하기 → /plugin install km@knowledge-manager)@knowledge-manager	km,knowledge-manager
+prompt-engineering-skills	add	ours	kind:writing	부탁 글 다듬기	하고 싶은 일을 적으면 Claude 가 잘 알아듣는 부탁 글로 정리해 줍니다.	README «함께 쓰면 좋은 공개 저장소» 절의 두 줄(저장소 더하기 → /plugin install prompt-engineering-skills@prompt-engineering-skills)@prompt-engineering-skills	prompt-engineering-skills
+notion	add	official	kind:writing,!mcp:notion	노션 연결	노션에 있는 문서를 찾아 읽고, 새 문서를 쓰거나 고칠 수 있게 합니다.	/plugin install notion@{market}	notion
+exa	add	official	kind:research	웹 조사	인터넷에서 자료를 찾아 깊이 조사하고 필요한 내용만 뽑아 줍니다.	/plugin install exa@{market}	web-research
+firecrawl	add	official	kind:research	웹 페이지 가져오기	웹 페이지를 읽기 쉬운 글로 바꿔 가져와 정리에 씁니다.	/plugin install firecrawl@{market}	web-scrape
+context7	add	official	kind:code	최신 사용 설명서 찾기	코드를 짤 때 쓰는 도구의 최신 사용 설명서를 찾아 보고 답합니다.	/plugin install context7@{market}	context7
+code-review	add	official	kind:code	코드 검토	고친 코드를 여러 검토 도우미가 나눠 살펴보고 문제를 짚어 줍니다.	/plugin install code-review@{market}	code-review
+pr-review-toolkit	add	official	kind:code	변경 묶음 검토	올리기 전 변경 묶음(PR)을 설명·시험·오류 처리 쪽에서 꼼꼼히 봐 줍니다.	/plugin install pr-review-toolkit@{market}	code-review
+commit-commands	add	official	kind:code	저장·올리기 명령	고친 내용을 저장(커밋)하고 올리는 일을 명령 하나로 해 줍니다.	/plugin install commit-commands@{market}	commit-commands
+feature-dev	add	official	kind:code	기능 만들기 순서	새 기능을 만들 때 살펴보기·설계·만들기·검토 순서로 차근차근 진행합니다.	/plugin install feature-dev@{market}	feature-dev
+security-guidance	add	official	kind:code	보안 살피기	Claude 가 만든 코드에 위험한 부분이 있으면 미리 알려 줍니다.	/plugin install security-guidance@{market}	security-review
+frontend-design	add	official	kind:code	화면 디자인	웹 화면을 만들 때 보기 좋고 완성도 높은 디자인으로 만들어 줍니다.	/plugin install frontend-design@{market}	frontend-design
+claude-md-management	add	official	kind:code	규칙 파일 관리	봇이 읽는 규칙 파일(CLAUDE.md)을 점검하고 깔끔하게 유지해 줍니다.	/plugin install claude-md-management@{market}	claude-md
+skill-creator	add	official	kind:code	나만의 기술 만들기	자주 하는 일을 봇이 따라 할 수 있는 기술(스킬)로 만들어 줍니다.	/plugin install skill-creator@{market}	skill-creator
+duckdb-skills	add	official	kind:data	표 파일 묻고 답하기	CSV·엑셀 같은 표 파일을 열어 궁금한 것을 물으면 계산해서 답합니다.	/plugin install duckdb-skills@{market}	data-query

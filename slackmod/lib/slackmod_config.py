@@ -19,11 +19,26 @@ Subcommands (all print to stdout; secret values are never printed):
                                                   → config JSON (stdout) made from the wizard's setup.json · rc 2 = input problems
                                                     (one line each on stderr) · deterministic: same setup (+ same base) = same bytes
   (env-upsert also takes --drop KEY… : removes that key's lines — a stale «ALLOWED_SLACK_GUEST_IDS» goes away when the list is emptied)
+  set-effort --config FILE --bot NAME|all --value low|medium|high|xhigh|max|default [--setup FILE]
+                                                  → sets bots[].effort in the config («default» = the key removed) and the same bot's
+                                                    effort in the setup file when given and present · rc 2 = unknown bot / value
+  effort-list --config FILE                       → one line per bot: name and effort («(기본)» = account default)
+  render-contract --config FILE --template T      → the main contract (stdout): T's bytes, except that with a children_open that is not the
+                                                    default the text inside «» on the «하위 세션이 맡았어요» line is that text · rc 2 = bad
+                                                    config / the template has no such line (nothing on stdout)
 
 Optional keys written by hand in config.json (a config without them behaves exactly as before; from-setup carries them through):
   slack.allowed_bot_user_ids  [U…]       bots outside this config that may speak to every bot here (merged after the config's own bots)
   slack.channel_ids           [C…|"*"]   more channels for the bridge; «*» (once, never first) = every channel the bot is invited to
+  children_open               "…"        the opening line the bot leaves in a thread it opened a child session in (1~80 characters · one line ·
+                                         no «» · default «하위 세션이 맡았어요»; only contract.md line 9 changes, contract-solo.md never)
   bots[].extra_channels       ["server:x"|"plugin:x@y"]   more development channels the bot window loads (after server:slack-channel)
+  bots[].effort               low|medium|high|xhigh|max   «생각 깊이» → launch.sh SM_EFFORT (the bot window's --effort) · absent = account default
+  bots[].projects             ["/abs/folder", …]          «작업 폴더» (≤20) → the bot folder's .claude/settings.json additionalDirectories
+                                                          (after the wiki · sorted) + .claude/rules/slackmod-projects.md
+  memory_setup                {"starter": true, "starter_path": "/abs"}   the kit's notes folder (templates/starter-wiki): files made
+                                                          only where missing · added like a wiki · per bot .claude/rules/slackmod-memory.md
+                                                          (from-setup writes it only when the setup file has no wiki.path)
   bots[].extra_env            {"NAME": "value"}           env for the bot window — an ALLOW list (env_route): only ① the plain names in
                                                           ENV_PLAIN (timezone · locale · NO_COLOR), written into launch.sh (0600), with
                                                           a value of the name's shape (a zone name · a locale · a «:» list of locales ·
@@ -32,7 +47,7 @@ Optional keys written by hand in config.json (a config without them behaves exac
                                                           whose value goes only to the bot's own .env (0600) and is read at start. Every
                                                           other name is refused · screens show variable NAMES only
 """
-import hashlib, json, os, re, shlex, stat, sys
+import hashlib, json, os, re, shlex, stat, sys, unicodedata
 
 NAME = re.compile(r'^[a-z][a-z0-9-]{0,31}$')
 CHAN = re.compile(r'^[CG][A-Z0-9]{8,12}$')
@@ -145,6 +160,14 @@ def plain_value_says(k):
     return PLAIN_TEXT_SAYS
 
 
+MAX_PROJECTS = 20
+
+
+def abs_dir_ok(p):
+    return (isinstance(p, str) and p.startswith('/') and not placeholder(p) and not any(c in p for c in '\n\r\t\'"$`\\')
+            and '..' not in p.split('/') and not SECRET_SHAPE.search(p))
+
+
 def problems(cfg):
     out = []
     if not isinstance(cfg, dict) or cfg.get('schema') != 1:
@@ -202,6 +225,12 @@ def problems(cfg):
             out.append('wiki.path: the wiki folder as an absolute path, or null (no wiki)')
     if 'browser' in cfg and cfg['browser'] not in BROWSERS:
         out.append('browser: playwright, aside or none')
+    ms = cfg.get('memory_setup')
+    if ms is not None and (not isinstance(ms, dict) or set(ms) - {'starter', 'starter_path'} or not isinstance(ms.get('starter'), bool)
+                           or (ms.get('starter') and not abs_dir_ok(ms.get('starter_path')))):
+        out.append('memory_setup: {"starter": true, "starter_path": "/absolute/notes/folder"} (the kit\'s notes folder) or leave it out')
+    if 'help_skill' in cfg and not isinstance(cfg['help_skill'], bool):
+        out.append('help_skill: true or false (the kit\'s «무엇을 쓰면 되나요?» skill in each bot folder)')
     mode = cfg.get('mode', 'full')
     if mode not in MODES:
         out.append('mode: quick, full or blank')
@@ -232,6 +261,15 @@ def problems(cfg):
         m = b.get('model', '')
         if m not in ('', None) and (not isinstance(m, str) or not MODEL.fullmatch(m)):
             out.append(where + '.model: empty (account default) or a model name like sonnet / opus')
+        e = b.get('effort', '')
+        if e not in ('', None) and e not in EFFORTS:
+            out.append(where + '.effort: empty (account default) or one of ' + ', '.join(EFFORTS))
+        if 'projects' in b:
+            pj = b['projects']
+            if (not isinstance(pj, list) or len(pj) > MAX_PROJECTS or any(not abs_dir_ok(x) for x in pj)
+                    or len(set(os.path.normpath(x) for x in pj)) != len(pj)
+                    or (isinstance(wd, str) and os.path.normpath(wd) in [os.path.normpath(x) for x in pj])):
+                out.append(where + '.projects: a list (up to %d) of absolute folders the bot works in — no repeats, not its own work_dir' % MAX_PROJECTS)
         ec = b.get('extra_channels')
         if ec is not None and (not isinstance(ec, list) or len(ec) > 8 or len(set(map(str, ec))) != len(ec) or 'server:slack-channel' in ec
                                or any(not isinstance(x, str) or not EXTRA_CHANNEL.fullmatch(x) for x in ec)):
@@ -277,6 +315,10 @@ def problems(cfg):
         out.append('children: true or false («하위 세션 쓰기»)')
     if 'router' in cfg:
         out += router_problems(cfg['router'])
+    if 'children_open' in cfg:
+        why = children_open_problem(cfg['children_open'])
+        if why:
+            out.append('children_open: ' + why + ' («하위 세션 쓰기» 켬일 때 스레드에 남기는 여는 말)')
     if 'owner_tag' in cfg and not isinstance(cfg['owner_tag'], bool):
         out.append('owner_tag: true or false (the owner tag at the start of a thread reply in the owner\'s DM)')
     c = cfg.get('child') or {}
@@ -320,22 +362,27 @@ def read_json_obj(path):
 
 def merge_settings(path, wiki=None, approve=None):
     """Project settings, ONE merge for every wizard column that lands here (two separate merges would overwrite each other):
-    wiki → permissions.additionalDirectories · approve → enabledMcpjsonServers (the .mcp.json server the kit itself added —
+    wiki (one folder or a list, in order: the wiki / notes folder, then the bot's projects) → permissions.additionalDirectories · approve → enabledMcpjsonServers (the .mcp.json server the kit itself added —
     a fresh Claude Code otherwise stops at «New MCP server found in this project» on the bot's first launch, cursor on
     «Continue without», measured 2026-10-25). A name in disabledMcpjsonServers stays off. No duplicates · other keys kept.
     → new file text, or None when nothing needs to change."""
     d, _ = read_json_obj(path)
     d = d if d is not None else {}
     changed = False
-    if wiki:
+    want = [wiki] if isinstance(wiki, str) else list(wiki or [])
+    if want:
         perms = d.get('permissions', {})
         if not isinstance(perms, dict):
             raise MergeError('%s: «permissions» must be an object — left untouched' % path)
         dirs = perms.get('additionalDirectories', [])
         if not isinstance(dirs, list):
             raise MergeError('%s: «permissions.additionalDirectories» must be a list — left untouched' % path)
-        if wiki not in dirs:
-            perms['additionalDirectories'] = dirs + [wiki]
+        add = []
+        for x in want:
+            if x not in dirs and x not in add:
+                add.append(x)
+        if add:
+            perms['additionalDirectories'] = dirs + add
             d['permissions'] = perms
             changed = True
     if approve:
@@ -405,6 +452,36 @@ DEFAULT_ALIASES = {'all': 'allbots', 'all_stop': 'allbots-stop'}
 DEFAULT_CHILD = {'model': 'sonnet', 'effort': 'medium', 'min_disk_free_gb': 20, 'min_free_mem_pct': 15}
 # the wizard's «하위 라우터(판정 모델이 고름)» column → the harness key session.jev_route (lib/jevroute.js · its words off/shadow/on)
 ROUTER_MODES = ('off', 'shadow', 'on')
+CHILDREN_OPEN_DEFAULT = '하위 세션이 맡았어요'   # the text inside «» on main-contract.md line 9 (the same words as setup/lib/plan.py)
+CHILDREN_OPEN_MAX = 80
+
+
+def children_open_problem(v):
+    """→ None when usable, else the reason (never the value: it may be token-shaped). The same rule as setup/lib/plan.py."""
+    if not isinstance(v, str):
+        return 'a string — the opening line, one line of 1~%d characters' % CHILDREN_OPEN_MAX
+    if not 1 <= len(v) <= CHILDREN_OPEN_MAX or not v.strip():
+        return 'must be 1~%d characters and not only spaces' % CHILDREN_OPEN_MAX
+    if any(unicodedata.category(c) in ('Cc', 'Zl', 'Zp') for c in v):
+        return 'one line only — no line break, tab or other control character'
+    if '«' in v or '»' in v:
+        return 'no « or » (they mark where the text sits in the contract)'
+    if SECRET_SHAPE.search(v):
+        return 'looks like a secret — never write a key or token here'
+    return None
+
+
+def render_contract(cfg, template):
+    """main-contract.md bytes + config → the contract to install. children_open absent or the default = the template, byte for byte;
+    else only the text inside «» on the opening-line row is swapped (ValueError when the template has no such row exactly once)."""
+    val = cfg.get('children_open')
+    if val is None or val == CHILDREN_OPEN_DEFAULT:
+        return template
+    old = '«' + CHILDREN_OPEN_DEFAULT + '»'
+    text = template.decode('utf-8')
+    if text.count(old) != 1:
+        raise ValueError('the contract template has no single «%s» row — children_open cannot be applied' % CHILDREN_OPEN_DEFAULT)
+    return text.replace(old, '«' + val + '»', 1).encode('utf-8')
 BUNDLED_JUDGE = 'bundled'                   # the example judge this kit installs: <root>/lib/route_judge.py
 # its key (sec r6 ⓑ2 · 10-26): one 0600 file in the bot's slack folder (slackmod set-judge-key) that the judge reads at each call
 # (--key-file on its argv) — never in the bot's environment, so the bot's Bash, its child sessions and `env` do not carry it.
@@ -515,6 +592,16 @@ def setup_to_config(st, base, home):
         row = {'name': n, 'work_dir': wd,
                'slack_bot_user_id': b.get('slack_bot_user_id', old.get('slack_bot_user_id', '')),
                'model': b.get('model', old.get('model', ''))}
+        # effort · projects: the setup file's column wins, a setup file without it keeps the config's (like model) — written
+        # only when not empty, so a config without them stays the same bytes
+        eff = b['effort'] if 'effort' in b else old.get('effort', '')
+        if eff:
+            row['effort'] = eff
+        pj = b['projects'] if 'projects' in b else old.get('projects', [])
+        if isinstance(pj, list):
+            pj = [home + x[1:] if isinstance(x, str) and x.startswith('~/') else x for x in pj]
+        if pj:
+            row['projects'] = pj
         for k in ('extra_channels', 'extra_env'):
             if k in old:
                 row[k] = old[k]
@@ -531,8 +618,23 @@ def setup_to_config(st, base, home):
     if isinstance(wk, str) and wk.startswith('~/'):
         wk = home + wk[1:]
     cfg['wiki'] = {'path': wk or None}
+    # the kit's notes folder (memory_setup.starter) — only when there is no wiki already (that wiki is used instead)
+    ms = st.get('memory_setup')
+    if isinstance(ms, dict) and ms.get('starter') is True and not wk:
+        sp = ms.get('starter_path') or home + '/SlackModWiki'
+        if isinstance(sp, str) and sp.startswith('~/'):
+            sp = home + sp[1:]
+        cfg['memory_setup'] = {'starter': True, 'starter_path': sp}
+    if isinstance(st.get('recommend'), dict):   # stage-1 wizard: the base layer's help skill goes into every bot folder
+        cfg['help_skill'] = True
+    elif 'help_skill' in base:
+        cfg['help_skill'] = base['help_skill']
     cfg['browser'] = st.get('browser', 'playwright')
     cfg['children'] = st.get('children', True)     # 10-26 «하위 세션 쓰기» (absent = on, as before the column)
+    # 11-03 «여는 말»: the setup file's column wins · a setup file without it keeps what the config had · neither = no key (the default text)
+    co = st['children_open'] if 'children_open' in st else base.get('children_open')
+    if co is not None or 'children_open' in st:
+        cfg['children_open'] = co   # problems() names a bad one
     # «하위 라우터»: the setup file's column wins · a setup file written before the column keeps what the config had
     rt = st.get('router') if 'router' in st else base.get('router')
     if isinstance(rt, dict):
@@ -548,7 +650,33 @@ def q(v):
     return shlex.quote(str(v))
 
 
-def plan(cfg, root, py, node, claude, sh, pass_sha):
+STARTER_TEMPLATE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'templates', 'starter-wiki')
+PROJECTS_RULE = '.claude/rules/slackmod-projects.md'
+MEMORY_RULE = '.claude/rules/slackmod-memory.md'
+HELP_SKILL = '.claude/skills/slackmod-help/SKILL.md'
+HELP_TEMPLATE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'templates', 'skills', 'slackmod-help', 'SKILL.md')
+
+
+def starter_files(template, dest):
+    """The kit's notes folder template → [(target path, content)] for the files not yet at dest (a file already there — edited or
+    not — is never touched). No link may sit on the way inside dest (the same rule as a bot folder)."""
+    if not os.path.isdir(template):
+        raise MergeError('%s: the notes folder template is missing from this kit (templates/starter-wiki) — get the kit again' % template)
+    out = []
+    for dirpath, dirnames, filenames in os.walk(template):
+        dirnames.sort()
+        for name in sorted(filenames):
+            src = os.path.join(dirpath, name)
+            rel = os.path.relpath(src, template).replace(os.sep, '/')
+            target = bot_folder_file(dest, rel)
+            if os.path.lexists(target):
+                continue
+            with open(src, encoding='utf-8') as f:
+                out.append((target, f.read()))
+    return sorted(out)
+
+
+def plan(cfg, root, py, node, claude, sh, pass_sha, starter_template=None):
     s, c, al = cfg['slack'], cfg['child'], cfg['aliases']
     bots = cfg['bots']
     owner = s.get('owner_user_id')
@@ -564,6 +692,13 @@ def plan(cfg, root, py, node, claude, sh, pass_sha):
     # each bot folder's CLAUDE.md. The harness refuses a 하위 session's own write there (memory guard, «하위 기억 쓰기 막기»)
     # — a sub-session reports in its result file and the bot decides what to keep. The bot's own session writes as before.
     home = os.path.normpath(os.path.expanduser('~'))
+    # the kit's notes folder (memory_setup.starter) — a wiki folder, when there is one, is used instead
+    ms = cfg.get('memory_setup') if isinstance(cfg.get('memory_setup'), dict) else {}
+    starter = None
+    if ms.get('starter') is True and not (cfg.get('wiki') or {}).get('path'):
+        if not abs_dir_ok(ms.get('starter_path')):
+            die('memory_setup.starter_path: not usable — run validate')
+        starter = os.path.normpath(ms['starter_path'])
     mem_roots = [home + '/.claude/projects', home + '/.claude/CLAUDE.md'] + \
                 sorted({os.path.normpath(x['work_dir']) + '/CLAUDE.md' for x in bots})
     for b in bots:
@@ -656,6 +791,7 @@ def plan(cfg, root, py, node, claude, sh, pass_sha):
             'SM_BOT=' + q(n),
             'SM_WORK_DIR=' + q(b['work_dir']),
             'SM_MODEL=' + q(b.get('model') or ''),
+        ] + (['SM_EFFORT=' + q(b['effort'])] if b.get('effort') else []) + [   # «생각 깊이» · empty = no line (same bytes as before)
             'SM_PERMISSION=' + q(cfg.get('permission', 'skip')),
             'SM_HARNESS_CONFIG=' + q(bd + '/harness.json'),
             'SM_MCP_CONFIG=' + q(bd + '/mcp.json'),
@@ -674,6 +810,14 @@ def plan(cfg, root, py, node, claude, sh, pass_sha):
         #  + the same settings.json enabledMcpjsonServers [playwright] when that entry is the kit's own (K19b · a user's own
         #  «playwright» entry is not pre-approved — that consent stays theirs)
         wiki_path = (cfg.get('wiki') or {}).get('path')
+        if b.get('effort') and b['effort'] not in EFFORTS:   # plan() never trusts that validate ran
+            die('bots[].effort: not one of ' + ', '.join(EFFORTS) + ' — run validate')
+        # folders the bot may open besides its own: the wiki (or the kit's notes folder when there is no wiki) first, then its
+        # projects («작업 폴더») sorted · no repeats
+        extra_dirs = [os.path.normpath(wiki_path)] if wiki_path else ([starter] if starter else [])
+        for x in sorted(os.path.normpath(y) for y in (b.get('projects') or [])):
+            if x not in extra_dirs:
+                extra_dirs.append(x)
         approve = None
         if cfg.get('browser') == 'playwright':
             mp = bot_folder_file(b['work_dir'], '.mcp.json')
@@ -682,11 +826,30 @@ def plan(cfg, root, py, node, claude, sh, pass_sha):
                 files.append({'path': mp, 'mode': existing_mode(mp), 'content': mtext})
             if kit_playwright_entry(mtext, mp):
                 approve = 'playwright'
-        if wiki_path or approve:
+        if extra_dirs or approve:
             sp = bot_folder_file(b['work_dir'], '.claude/settings.json')
-            text = merge_settings(sp, wiki=os.path.normpath(wiki_path) if wiki_path else None, approve=approve)
+            text = merge_settings(sp, wiki=extra_dirs, approve=approve)
             if text is not None:
                 files.append({'path': sp, 'mode': existing_mode(sp), 'content': text})
+        if b.get('projects'):
+            rp = bot_folder_file(b['work_dir'], PROJECTS_RULE)
+            files.append({'path': rp, 'mode': existing_mode(rp), 'content': '\n'.join(
+                ['# 작업 폴더 (SlackMod 설치기가 만듦 — 바꾸려면 설치 마법사에서 작업 폴더를 다시 고르세요)', '',
+                 '이 폴더들 안에서 일하고, 밖은 열지 않습니다.', '']
+                + ['- ' + x for x in sorted(os.path.normpath(y) for y in b['projects'])] + [''])})
+        if cfg.get('help_skill') is True:
+            try:
+                with open(HELP_TEMPLATE, encoding='utf-8') as hf:
+                    help_text = hf.read()
+            except OSError:
+                raise MergeError('%s: the help skill template is missing from this kit (templates/skills/slackmod-help) — get the kit again' % HELP_TEMPLATE)
+            hp = bot_folder_file(b['work_dir'], HELP_SKILL)
+            files.append({'path': hp, 'mode': existing_mode(hp), 'content': help_text})
+        if starter:
+            mp = bot_folder_file(b['work_dir'], MEMORY_RULE)
+            files.append({'path': mp, 'mode': existing_mode(mp), 'content': '\n'.join(
+                ['# 기억 (SlackMod 설치기가 만듦)', '',
+                 '기억할 것은 %s/기억/%s.md 에 적고, 찾을 땐 이 폴더부터 봅니다.' % (starter, n), ''])})
         # who may speak to this bot: the other bots of this config, then slack.allowed_bot_user_ids (bots outside this config) — no repeats, never itself
         own = b.get('slack_bot_user_id') or ''
         peer_ids = []
@@ -705,6 +868,9 @@ def plan(cfg, root, py, node, claude, sh, pass_sha):
             env[n]['ALLOWED_SLACK_GUEST_IDS'] = ','.join(s['guests'])
         elif 'guests' in s:
             env_drop.setdefault(n, []).append('ALLOWED_SLACK_GUEST_IDS')
+    if starter:   # made once, before the list of bots (only the files that are not there yet)
+        for target, text in starter_files(starter_template or STARTER_TEMPLATE, starter):
+            files.append({'path': target, 'mode': '644', 'content': text})
     files.append({'path': root + '/bots.list', 'mode': '644', 'content': ''.join(b['name'] + '\n' for b in bots)})
     lines = [RC_BEGIN,
              '# SlackMod 켜기 이름 — install.sh 가 관리합니다(고치려면 ~/.slackmod/config.json 을 고친 뒤 install.sh 다시 실행)',
@@ -790,6 +956,24 @@ def write_private(path, lines):
         raise
 
 
+def write_json_keep_mode(path, data):
+    """Replace a JSON file in one step, keeping its mode (a config with secret-named values is 0600)."""
+    mode = stat.S_IMODE(os.stat(path).st_mode) if os.path.exists(path) else 0o644
+    tmp = path + '.tmp-' + os.urandom(8).hex()
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, 'O_NOFOLLOW', 0), 0o600)
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as f:
+            f.write(json.dumps(data, indent=2, ensure_ascii=False) + '\n')
+        os.chmod(tmp, mode)
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
 def upsert(lines, key, value):
     out, done = [], False
     for ln in lines:
@@ -847,6 +1031,69 @@ def main(argv):
                 print('  - ' + e, file=sys.stderr)
             return 2
         sys.stdout.write(json.dumps(cfg, indent=2, ensure_ascii=False) + '\n')
+        return 0
+    if cmd == 'render-contract':
+        # render-contract --config F --template T → the contract text on stdout (nothing written here · the installer puts it in place)
+        cp, tp = arg(rest, '--config'), arg(rest, '--template')
+        if not cp or not tp:
+            die('render-contract needs --config FILE --template FILE')
+        cfg = load(cp)
+        errs = [e for e in problems(cfg) if e.startswith('children_open')]
+        if errs:
+            for e in errs:
+                print('  - ' + e, file=sys.stderr)
+            return 2
+        try:
+            with open(tp, 'rb') as f:
+                tpl = f.read()
+            out = render_contract(cfg, tpl)
+        except (OSError, ValueError) as exc:
+            die('render-contract: ' + str(exc))
+        sys.stdout.buffer.write(out)
+        sys.stdout.buffer.flush()
+        return 0
+    if cmd == 'set-effort':
+        # set-effort --config F --bot NAME|all --value WORD [--setup S] → the config (and the setup file, so the next wizard run
+        # does not put the old value back) · «default» = the key removed (account default) · nothing written on a bad bot / value
+        cp, who, val, sp = arg(rest, '--config'), arg(rest, '--bot'), arg(rest, '--value'), arg(rest, '--setup')
+        if not cp or not who or val is None:
+            die('set-effort needs --config FILE --bot NAME|all --value WORD')
+        if val not in EFFORTS + ('default',):
+            die('생각 깊이는 %s 또는 default(계정 기본) 중 하나입니다 — 아무것도 바꾸지 않았습니다' % ', '.join(EFFORTS))
+        cfg = load(cp)
+        names = [b.get('name') for b in (cfg.get('bots') or []) if isinstance(b, dict)]
+        targets = names if who == 'all' else [who]
+        if who != 'all' and who not in names:
+            die('모르는 봇: %s (있는 봇: %s) — 아무것도 바꾸지 않았습니다' % (who, ' '.join(map(str, names)) or '없음'))
+        st = None
+        if sp and os.path.isfile(sp):
+            try:
+                with open(sp, encoding='utf-8') as f:
+                    st = json.load(f)
+            except ValueError:
+                print('slackmod: %s is not valid JSON — left as it is (the config is changed)' % os.path.basename(sp), file=sys.stderr)
+                st = None
+        for b in cfg.get('bots') or []:
+            if isinstance(b, dict) and b.get('name') in targets:
+                if val == 'default':
+                    b.pop('effort', None)
+                else:
+                    b['effort'] = val
+        write_json_keep_mode(cp, cfg)
+        if isinstance(st, dict) and isinstance(st.get('bots'), list):
+            for b in st['bots']:
+                if isinstance(b, dict) and b.get('name') in targets:
+                    b['effort'] = '' if val == 'default' else val
+            write_json_keep_mode(sp, st)
+        for n in targets:
+            print('%s: %s' % (n, '(기본)' if val == 'default' else val))
+        return 0
+    if cmd == 'effort-list':
+        cfg = load(arg(rest, '--config'))
+        print('%-14s %s' % ('봇', '생각 깊이'))
+        for b in cfg.get('bots') or []:
+            if isinstance(b, dict):
+                print('%-14s %s' % (b.get('name'), b.get('effort') or '(기본)'))
         return 0
     if cmd == 'validate':
         errs = problems(load(arg(rest, '--config')))
