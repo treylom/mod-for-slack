@@ -54,6 +54,15 @@ CHAN = re.compile(r'^[CG][A-Z0-9]{8,12}$')
 USER = re.compile(r'^[UW][A-Z0-9]{8,12}$')
 GUEST = re.compile(r'^U[A-Z0-9]{8,}$')   # guests: member IDs only (a «W» enterprise ID or a bot is not a guest)
 BACKENDS = ('tmux', 'herdr')   # window_backend values the harness reads · absent = auto
+# the board's «ⓘ 이게 뭔가» line (harness ui.about · src/ui/lib/legend.js): folded = summary · opened = the Claude Code mod it
+# runs on (ccmod), then this system under its name (system). Wording draft = about-text.md, reviewed with the README.
+ABOUT = {
+    'summary': 'Slack 글에 답하는 Claude Code 봇',
+    'ccmod': 'Claude Code 의 화면과 동작을 바꾸는 플러그인(줄여서 CCMOD). '
+             '대화 옆 칸, 입력창 위 띠, /명령을 더하고, 도구 호출 같은 일을 지켜보거나 바꿀 수 있음. 이 현황판과 띠도 mod 로 만듦.',
+    'system': 'CCMOD 위에서 도는 Slack 봇 시스템. Slack 글을 받아 봇이 답하고, 일이 길면 스레드마다 하위 세션을 따로 띄워 맡기며, '
+              '이 현황판에 세션, 프로젝트, 예약 상태를 보여 줌.',
+}
 # extra development channels a bot's main window loads besides the Slack bridge (--dangerously-load-development-channels … <these>)
 EXTRA_CHANNEL = re.compile(r'^(server|plugin):[A-Za-z0-9][A-Za-z0-9._@:/-]{0,99}$')
 ENV_NAME = re.compile(r'^[A-Z][A-Z0-9_]*$')
@@ -740,7 +749,7 @@ def plan(cfg, root, py, node, claude, sh, pass_sha, starter_template=None):
                 # the person who talks to the bots (slack.owner_user_id) · empty or null → [] (nothing made up)
                 'owner_ids': [owner] if owner else [],
             },
-            'ui': {'system_name': 'SlackMod'},
+            'ui': {'system_name': 'mod-for-slack', 'about': ABOUT},
         }
         # the 3rd-message nudge asks the owner to reply «하위로», but a hand-off needs session.child_mcp_config (children
         # post in the thread through it) and the kit writes none → without it the nudge is turned off (handoff.nudge_at 0)
@@ -834,7 +843,7 @@ def plan(cfg, root, py, node, claude, sh, pass_sha, starter_template=None):
         if b.get('projects'):
             rp = bot_folder_file(b['work_dir'], PROJECTS_RULE)
             files.append({'path': rp, 'mode': existing_mode(rp), 'content': '\n'.join(
-                ['# 작업 폴더 (SlackMod 설치기가 만듦 — 바꾸려면 설치 마법사에서 작업 폴더를 다시 고르세요)', '',
+                ['# 작업 폴더 (mod-for-slack 설치기가 만듦 — 바꾸려면 설치 마법사에서 작업 폴더를 다시 고르세요)', '',
                  '이 폴더들 안에서 일하고, 밖은 열지 않습니다.', '']
                 + ['- ' + x for x in sorted(os.path.normpath(y) for y in b['projects'])] + [''])})
         if cfg.get('help_skill') is True:
@@ -848,7 +857,7 @@ def plan(cfg, root, py, node, claude, sh, pass_sha, starter_template=None):
         if starter:
             mp = bot_folder_file(b['work_dir'], MEMORY_RULE)
             files.append({'path': mp, 'mode': existing_mode(mp), 'content': '\n'.join(
-                ['# 기억 (SlackMod 설치기가 만듦)', '',
+                ['# 기억 (mod-for-slack 설치기가 만듦)', '',
                  '기억할 것은 %s/기억/%s.md 에 적고, 찾을 땐 이 폴더부터 봅니다.' % (starter, n), ''])})
         # who may speak to this bot: the other bots of this config, then slack.allowed_bot_user_ids (bots outside this config) — no repeats, never itself
         own = b.get('slack_bot_user_id') or ''
@@ -873,7 +882,7 @@ def plan(cfg, root, py, node, claude, sh, pass_sha, starter_template=None):
             files.append({'path': target, 'mode': '644', 'content': text})
     files.append({'path': root + '/bots.list', 'mode': '644', 'content': ''.join(b['name'] + '\n' for b in bots)})
     lines = [RC_BEGIN,
-             '# SlackMod 켜기 이름 — install.sh 가 관리합니다(고치려면 ~/.slackmod/config.json 을 고친 뒤 install.sh 다시 실행)',
+             '# mod-for-slack 켜기 이름 — install.sh 가 관리합니다(고치려면 ~/.slackmod/config.json 을 고친 뒤 install.sh 다시 실행)',
              'case ":$PATH:" in *":%s/bin:"*) ;; *) export PATH="%s/bin:$PATH" ;; esac' % (root, root)]
     for b in bots:
         lines.append("alias %s='slackmod open %s'" % (b['name'], b['name']))   # end the running session → new conversation → attach
@@ -1183,7 +1192,7 @@ def main(argv):
         outside = pat.sub('', old)
         for a in arg(rest, '--alias', many=True):
             if re.search(r'(^|\n)\s*alias\s+%s=' % re.escape(a), outside):
-                die('rc-merge: alias «%s» is already defined in %s outside the SlackMod block' % (a, os.path.basename(rcp)), 1)
+                die('rc-merge: alias «%s» is already defined in %s outside the mod-for-slack block' % (a, os.path.basename(rcp)), 1)
         if RC_BEGIN in old:
             new = pat.sub(lambda m: block, old, count=1)
         else:

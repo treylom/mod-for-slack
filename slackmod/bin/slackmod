@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# slackmod — SlackMod 봇 켜기 · 끄기 · 상태 (install.sh 가 ~/.slackmod/bin 에 둔다)
+# slackmod — mod-for-slack 봇 켜기 · 끄기 · 상태 (install.sh 가 ~/.slackmod/bin 에 둔다)
 #   slackmod start <봇|all> [--force] [--backend auto|tmux|herdr]
 #                                       봇 켜기 (tmux 세션 = 봇 이름 · 창 bridge = Slack 다리 · 창 main = 봇)
 #                                       herdr = 작업공간 하나(이름 = 봇) · 탭 bridge · 탭 main · 하위 세션 = 같은 작업공간의 탭
@@ -215,7 +215,7 @@ check_windows() { # rc 0 = 안 보임 · 1 = 보임 · 2 = 확인 못 함 / WSL 
     echo "참고: $(where_word) 안에 옛 봇 창의 Slack 중계 부품(mcp.js) ${relays}개가 있습니다 — 다리 본체가 아니라 메시지가 갈리지는 않습니다(그 창은 Slack 을 못 받음 · 안 쓰면 그 창을 닫으세요)."
   fi
   if [ "${here:-0}" -gt 0 ]; then
-    echo "$(where_word) 안에 SlackMod 밖에서 켠 Slack 다리 ${here}개가 돌고 있습니다(예: 예전 방식으로 켠 봇 · systemd 로 켠 다리)."
+    echo "$(where_word) 안에 mod-for-slack 밖에서 켠 Slack 다리 ${here}개가 돌고 있습니다(예: 예전 방식으로 켠 봇 · systemd 로 켠 다리)."
     echo "같은 Slack 앱이면 메시지가 갈립니다 — 그 봇을 먼저 끄세요(ps -eo pid,args | grep channel-server 로 확인)."
     echo "그 봇이 다른 Slack 앱인 게 확실하면: slackmod start <봇> --force"
     return 1

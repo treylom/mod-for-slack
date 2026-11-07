@@ -13,3 +13,4 @@ https://github.com/owner/knowledge-manager
 https://github.com/owner/prompt-engineering-skills
 owner/knowledge-manager
 owner/prompt-engineering-skills
+https://github.com/owner/mod-for-slack

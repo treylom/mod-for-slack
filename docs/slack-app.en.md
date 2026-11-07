@@ -4,11 +4,12 @@
 
 > **The setup wizard can do this for you.** If the browser tool Aside is on this computer, the setup wizard (`bash install.sh`) does everything on this page in the browser, from creating the app to saving the tokens — you only pick the workspace and press Next (and sign in if needed), and the tokens go straight into the bot without showing up in the AI chat or its output (the browser tab shows them briefly, as Slack always does). You can also choose «create the app only» and do the token steps yourself. This page is the order for doing it by hand.
 
-Each SlackMod bot uses its own Slack app. Two bots means two apps (if two bots share one app, messages get split between them). This page walks through creating one app and getting the two tokens SlackMod needs.
+Each mod-for-slack bot uses its own Slack app. Two bots means two apps (if two bots share one app, messages get split between them). This page walks through creating one app and getting the two tokens mod-for-slack needs.
 
 - You need: a browser signed in to your Slack workspace · [`slackmod/slack-app-manifest.json`](../slackmod/slack-app-manifest.json) from this repository (it fills in all app settings at once)
 - You get: an app token starting with `xapp-` · a bot token starting with `xoxb-`
 - Slack may show its pages partly in your account language. The screenshots below were taken with a mix of English and Korean labels; look for the button names given in the text.
+- The install-consent and bot-token-scope screenshots were taken before the rename, so they show the app name «SlackMod lead». An app made from the current manifest shows «mod-for-slack lead».
 
 > **Treat the tokens like passwords.** Do not paste them into chats, issues, screenshots or AI conversations — paste them straight into the terminal in the last step.
 
@@ -23,7 +24,7 @@ Each SlackMod bot uses its own Slack app. Two bots means two apps (if two bots s
    ![Paste a manifest selected in the Create new app window](img/slack-app/02-paste-a-manifest.png)
 
 3. Replace the sample text with the whole content of `slackmod/slack-app-manifest.json`. Under **Workspace**, pick the workspace the bot will live in, then **Next**.
-   - For more than one bot, change `"name": "SlackMod lead"` and `"display_name": "lead"` to the bot's name before pasting. `display_name` is the name you call in Slack, as in `@lead`.
+   - For more than one bot, change `"name": "mod-for-slack lead"` and `"display_name": "lead"` to the bot's name before pasting. `display_name` is the name you call in Slack, as in `@lead`.
 
    ![Manifest pasted and workspace picked (workspace name and logo hidden)](img/slack-app/03-manifest-and-workspace.png)
 
@@ -35,7 +36,7 @@ The app settings open. The steps below use the menu on the left.
 
 ![Left menu of the app settings — Basic Information · Socket Mode · OAuth & Permissions · Event Subscriptions](img/slack-app/05-left-menu.png)
 
-**Socket Mode** is already on (the manifest turns it on). SlackMod connects to Slack this way, so you do not need a public address or web server.
+**Socket Mode** is already on (the manifest turns it on). mod-for-slack connects to Slack this way, so you do not need a public address or web server.
 
 ![Socket Mode page — Enable Socket Mode is on](img/slack-app/06-socket-mode-on.png)
 
@@ -49,7 +50,7 @@ The app settings open. The steps below use the menu on the left.
 
    ![Generate an app-level token — name socket · scope connections:write](img/slack-app/08-app-token-dialog.png)
 
-3. Slack shows a token starting with `xapp-`. Do not copy it into a note or a chat. Leave this page as it is in this browser tab, and open the app settings in a **new tab** for the next step (in «5. Put the tokens into SlackMod» you switch between the two tabs to paste).
+3. Slack shows a token starting with `xapp-`. Do not copy it into a note or a chat. Leave this page as it is in this browser tab, and open the app settings in a **new tab** for the next step (in «5. Put the tokens into mod-for-slack» you switch between the two tabs to paste).
 
 ## 3. Install to the workspace and get the bot token (`xoxb-`)
 
@@ -63,9 +64,9 @@ The app settings open. The steps below use the menu on the left.
 
    - If your workspace requires admin approval for new apps, the app is not installed right away; it waits for an admin. Come back to this step once it is approved.
 
-3. After the install, the same **OAuth Tokens** box shows the bot token (Bot User OAuth Token) starting with `xoxb-`. You copy this one in «5. Put the tokens into SlackMod» too.
+3. After the install, the same **OAuth Tokens** box shows the bot token (Bot User OAuth Token) starting with `xoxb-`. You copy this one in «5. Put the tokens into mod-for-slack» too.
 
-Further down the same page, **Bot Token Scopes** lists the 8 permissions from the manifest. What SlackMod uses them for:
+Further down the same page, **Bot Token Scopes** lists the 8 permissions from the manifest. What mod-for-slack uses them for:
 
 ![The 8 bot token scopes — app_mentions:read · channels:history · chat:write · files:read · groups:history · im:history · im:read · reactions:write](img/slack-app/11-bot-token-scopes.png)
 
@@ -85,14 +86,14 @@ Further down the same page, **Bot Token Scopes** lists the 8 permissions from th
 
 ![Subscribe to bot events — app_mention · message.im](img/slack-app/12-bot-events.png)
 
-- `app_mention` = a channel post that `@mentions` the bot · `message.im` = a direct message to the bot. These two are the SlackMod default.
+- `app_mention` = a channel post that `@mentions` the bot · `message.im` = a direct message to the bot. These two are the mod-for-slack default.
 - `message.channels` is left out on purpose. Without it, Slack never sends the bot a channel post that does not mention it. Add it with **Add Bot User Event** only when:
   - you want the bot to receive follow-ups without `@bot` in a thread it is already answering, or
   - you want the notice that tells a bot its post was not delivered because it had no mention (`slack.drop_notice_no_mention`).
 - If, after adding it, the page shows a notice at the top asking you to reinstall the app, reinstall as it says.
 - Several bots in one channel is fine: a channel post reaches only the bot it names (follow-ups without a mention in a thread that bot is already answering are the exception).
 
-## 5. Put the tokens into SlackMod
+## 5. Put the tokens into mod-for-slack
 
 1. Invite the app to the channel the bot will use: in that channel, `/invite @lead` (or the `display_name` you chose).
 2. Have the two values the setup wizard asks for: the channel ID (starts with C · bottom of the channel details) and the user ID of the person who talks to the bot (starts with U · profile ⋯ → Copy member ID).
@@ -119,7 +120,7 @@ What a person still does:
 - **Click Generate in the token window.** The token appears on screen right after, so keep the agent off that page.
 - **Click Allow on the install consent page.** It lets an app into your workspace, so a person should click it (while making this page we clicked Cancel, not Allow).
 - **Admin approval**, if your workspace requires it.
-- **Put the two tokens into SlackMod.** For now the only way is a person pasting them in a terminal, as in «5. Put the tokens into SlackMod».
+- **Put the two tokens into mod-for-slack.** For now the only way is a person pasting them in a terminal, as in «5. Put the tokens into mod-for-slack».
 
 Keeping the tokens out of conversations and logs:
 
@@ -129,7 +130,7 @@ Keeping the tokens out of conversations and logs:
 
 ## Deleting the app
 
-**Basic Information** → **Delete App** at the bottom. As the confirmation says, deleting the app makes all of its tokens invalid and cannot be undone. Undoing the SlackMod side is in the [README](../README.md) (English part: «To undo»).
+**Basic Information** → **Delete App** at the bottom. As the confirmation says, deleting the app makes all of its tokens invalid and cannot be undone. Undoing the mod-for-slack side is in the [README](../README.en.md) («Undo»).
 
 ![The Delete App box at the bottom of Basic Information](img/slack-app/13-delete-app.png)
 

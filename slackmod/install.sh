@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SlackMod 최소판 설치기 — WSL(Ubuntu) · macOS. 같은 걸 두 번 실행해도 결과가 같다(두 번째 = «바뀜 0»).
+# mod-for-slack 최소판 설치기 — WSL(Ubuntu) · macOS. 같은 걸 두 번 실행해도 결과가 같다(두 번째 = «바뀜 0»).
 #   bash install.sh --dry-run     바꿀 것만 보여 줌 (쓰기 0)
 #   bash install.sh               설치 · 갱신
 # 옵션: --config FILE (기본 ~/.slackmod/config.json) · --rc FILE (기본: 셸이 zsh 면 ~/.zshrc · 아니면 ~/.bashrc) · --no-npm (시험용 — 채널 서버 의존성 설치 건너뜀)
@@ -102,7 +102,7 @@ put_file() { # put_file <target> <mode> <source file>
 }
 
 # ── 0. 바탕 점검 ─────────────────────────────────────────────────────────────────────────────────────────────────────
-say "SlackMod 설치기 — $( [ "$DRY" = 1 ] && echo '미리 보기(쓰기 0)' || echo '설치') · 대상 $ROOT"
+say "mod-for-slack 설치기 — $( [ "$DRY" = 1 ] && echo '미리 보기(쓰기 0)' || echo '설치') · 대상 $ROOT"
 OS="$(uname -s)"
 WSL=0
 if [ "$OS" = Linux ] && grep -qi microsoft /proc/version 2>/dev/null; then WSL=1; fi
@@ -361,8 +361,8 @@ fi
 ALIAS_ARGS=()
 for a in ${ALIASES[@]+"${ALIASES[@]}"}; do ALIAS_ARGS+=(--alias "$a"); done   # bash 3.2: an empty array (blank mode) is not «unbound»
 r="$("${CFG_PY[@]}" rc-merge --rc "$RC_FILE" --block "$RC_STAGED" --out "$WORK/rc.new" ${ALIAS_ARGS[@]+"${ALIAS_ARGS[@]}"})"
-if [ "$r" = same ]; then act SAME "$RC_FILE (SlackMod 칸)"; else
-  act WRITE "$RC_FILE (SlackMod 칸 · 이름 ${ALIASES[*]:-없음})"
+if [ "$r" = same ]; then act SAME "$RC_FILE (mod-for-slack 칸)"; else
+  act WRITE "$RC_FILE (mod-for-slack 칸 · 이름 ${ALIASES[*]:-없음})"
   if [ "$DRY" = 0 ]; then
     if [ -f "$RC_REAL" ]; then
       m0="$(mode_of "$RC_REAL")"; backup_path "$RC_REAL" copy; rec rc "$RC_REAL" "$BACKUP/$(rel_home "$RC_REAL")" "$m0"

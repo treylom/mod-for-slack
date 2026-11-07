@@ -128,6 +128,7 @@ const S = {
   othersOpen: false,
   lowerOpen: true, // r2 (봇): the pane's lower part (TeamClaude) — folded by its boundary line (f)
   cronOpen: false, // r2 (owner 15:41): the pane's «◷ 예약 … ▸» line opened (r · click)
+  aboutOpen: false, // 11-08: the pane's «ⓘ 이게 뭔가 ▸» line opened (i · click · legend.js aboutLines) — screen state only
   // 10-24 (B): the 예약 lines pressed open (jobs.js jobId — stays the same across redraws and re-reads), each showing its
   // detail; apart from the whole-list fold (S.expanded · mh-own). Screen state of this session only.
   jobOpen: new Set(),
@@ -983,14 +984,17 @@ function paneOf(v, cols, maxRows) {
   const lowerHead = (open, w) => teamHead(S.team.model, { urls: S.cfg.teamUrls.length, cols: w, open })
   // R7b (주인 22:14): the title line and the legend lead the body (legend.js —
   // the engine scrolls the body as a whole, so they sit at its top), the rest fitted to the rows left under them
-  const head = paneHead(S.cfg.name, cols)
+  // 11-08: + the «이게 뭔가» lines under the title (ui.about · none = the head of before)
+  const head = paneHead(S.cfg.name, cols, { text: S.cfg.about || null, open: S.aboutOpen })
   const rest = Number.isFinite(maxRows) ? Math.max(1, maxRows - head.length) : maxRows
   // P2 (주인 10-19): thin rules over and under the legend and over each part — one share of the body's
   // rows (band.js allot 'rules': all or none, after this session's tree); the one over the legend comes first in the body
   // (rule-head) and is drawn under the title
   const body = paneLines({ back: S.back ? backHead(S.back.from) : null, treeHead: tree.header, treeRows: tree.rows, othersHead: oHead, othersRows: oRows, projHead: proj.head, projRows: proj.rows, team,
     teamOpen: S.teamOpen.size > 0, cron: v.cronPane, lowerOpen: S.lowerOpen, cronOpen: S.cronOpen, lowerHead, teamWhole: true, rules: true, headRule: true }, cols, rest)
-  return body.length && body[0].key === 'rule-head' ? [head[0], body[0], ...head.slice(1), ...body.slice(1)] : [...head, ...body]
+  // 11-08: the rule over the legend goes under the title and its «이게 뭔가» lines (they are the title's, not the legend's)
+  const top = head.filter((l) => l.key === 'title' || /^about/.test(l.key)).length
+  return body.length && body[0].key === 'rule-head' ? [...head.slice(0, top), body[0], ...head.slice(top), ...body.slice(1)] : [...head, ...body]
 }
 
 // The ◈ part's groups as drawn — the one place they are made, for the drawing (paneOf) and for a ✕ press (what it would
@@ -1231,6 +1235,7 @@ async function pressAction($, press) {
     }
     else if (a.type === 'lower') S.lowerOpen = !S.lowerOpen
     else if (a.type === 'cron') S.cronOpen = !S.cronOpen
+    else if (a.type === 'about') S.aboutOpen = !S.aboutOpen
     // 10-24 (B): one 예약 line's detail open / shut — the whole-list fold (S.expanded) is not touched
     else if (a.type === 'job') {
       if (!S.jobOpen.delete(a.id)) S.jobOpen.add(a.id)

@@ -1,5 +1,5 @@
 {
-  "_help": "SlackMod 설정 1개. 이 파일을 ~/.slackmod/config.json 으로 복사해 X 자리와 폴더만 바꾼 뒤 install.sh 를 다시 실행하세요. Slack 토큰은 여기 넣지 않습니다(slackmod set-token <봇 이름>).",
+  "_help": "mod-for-slack 설정 1개. 이 파일을 ~/.slackmod/config.json 으로 복사해 X 자리와 폴더만 바꾼 뒤 install.sh 를 다시 실행하세요. Slack 토큰은 여기 넣지 않습니다(slackmod set-token <봇 이름>).",
   "schema": 1,
   "slack": {
     "_help": "channel_id = 두 봇이 함께 있는 채널 ID(C 로 시작) · owner_user_id = 봇에게 말할 사람의 Slack 사용자 ID(U 로 시작) · drop_notice = 허용 안 된 봇이 이 봇을 부르면 그 스레드에 알림 · drop_notice_no_mention = 허용된 봇이 멘션 없이 쓰면 알림(같은 채널 30분 1통)",

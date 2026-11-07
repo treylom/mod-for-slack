@@ -63,13 +63,13 @@ IW='{"state":"install-wait","app":"AFAKE12345","reason":"install-greyed","diag":
 sc created "{\"open\":[$OP],\"waitReview\":[$WT,$RV],\"create\":[$CR]}"
 wr created run --bot research --wait 60
 [ "$RC" = 0 ] && printf '%s' "$OUT" | grep -qx 'SLACKMOD_APP state=created app=AFAKE12345' && ok "B created (no keys): rc 0 · state line" || no "B created: rc $RC · $OUT"
-case "$(calls)" in "define pads=0 keys=None name=SlackMod research open waitReview waitReview create exit") ok "B created: calls = define open wait×2 create exit (no keys call · no pads sent)" ;; *) no "B created calls: $(calls)" ;; esac
+case "$(calls)" in "define pads=0 keys=None name=mod-for-slack research open waitReview waitReview create exit") ok "B created: calls = define open wait×2 create exit (no keys call · no pads sent)" ;; *) no "B created calls: $(calls)" ;; esac
 clean_out "B created"
 
 sc saved "{\"open\":[$OP],\"waitReview\":[$RV],\"create\":[$CR],\"keysApp\":[\"KEYS_GOOD\"],\"installWait\":[$IR],\"keysBot\":[\"KEYS_GOOD\"]}"
 wr saved run --bot research --keys --root "$T/root"
 [ "$RC" = 0 ] && printf '%s' "$OUT" | grep -qx 'SLACKMOD_APP state=saved app=AFAKE12345' && ok "B saved: rc 0 · state=saved (keysBot gave no diagnosis → no diag=)" || no "B saved: rc $RC · $OUT"
-[ "$(calls)" = "define pads=2 keys=True name=SlackMod research open waitReview create keysApp installWait keysBot exit" ] && ok "B saved: calls = … keysApp installWait keysBot (one wait statement when the page is live at once)" || no "B saved calls: $(calls)"
+[ "$(calls)" = "define pads=2 keys=True name=mod-for-slack research open waitReview create keysApp installWait keysBot exit" ] && ok "B saved: calls = … keysApp installWait keysBot (one wait statement when the page is live at once)" || no "B saved calls: $(calls)"
 XB="xo""xb-"; XA="xa""pp-"   # split: the trace scan must not see a token shape
 want="$(printf '%s\n%s' "${XB}0000000000-1111111111111-BAITBOTTOKENBAITBOT01" "${XA}1-AFAKE12345-0000000000000-BAITAPPTOKENBAITAPPTOKENBAITAPPTOKEN0123456789")"
 [ "$(cat "$T/root/got-tokens" 2>/dev/null)" = "$want" ] && [ "$(cat "$T/root/got-bot")" = research ] && ok "B saved: set-token research got bot token then app token on stdin (unsealed with the run's pads)" || no "B saved: set-token got something else"
@@ -89,7 +89,7 @@ rm -f "$T/root/fail"
 
 sc login '{"open":[{"state":"login","reason":"sign-in"}]}'
 wr login run --bot research
-[ "$RC" = 10 ] && [ "$(calls)" = "define pads=0 keys=None name=SlackMod research open exit" ] && ok "B signed out: rc 10 · stops after open" || no "B login: rc $RC · $(calls)"
+[ "$RC" = 10 ] && [ "$(calls)" = "define pads=0 keys=None name=mod-for-slack research open exit" ] && ok "B signed out: rc 10 · stops after open" || no "B login: rc $RC · $(calls)"
 
 sc wait "{\"open\":[$OP],\"waitReview\":[$WT]}"
 wr wait run --bot research --wait 0
@@ -117,7 +117,7 @@ case "$(calls)" in *) : ;; esac
 # R2 5th run (2026-11-07): «Install to …» greyed on a new app → the wizard reloads the page (installWait) up to --install-wait
 sc waitok "{\"open\":[$OP],\"waitReview\":[$RV],\"create\":[$CR],\"keysApp\":[\"KEYS_GOOD\"],\"installWait\":[$IW,$IW,$IR],\"keysBot\":[\"KEYS_GOOD_DIAG\"]}"
 wr waitok run --bot research --keys --root "$T/root"
-[ "$(calls)" = "define pads=2 keys=True name=SlackMod research open waitReview create keysApp installWait installWait installWait keysBot exit" ] && ok "B greyed twice then live: installWait ×3 then keysBot" || no "B waitok calls: $(calls)"
+[ "$(calls)" = "define pads=2 keys=True name=mod-for-slack research open waitReview create keysApp installWait installWait installWait keysBot exit" ] && ok "B greyed twice then live: installWait ×3 then keysBot" || no "B waitok calls: $(calls)"
 printf '%s' "$OUT" | grep -qx 'SLACKMOD_APP state=saved app=AFAKE12345 diag=3=empty,20=empty,37=empty,55=approved,56=approved' && [ "$RC" = 0 ] && [ -s "$T/root/got-tokens" ] && ok "B saved after the wait: rc 0 · the result line carries keysBot's diagnosis (age=status per load)" || no "B waitok: rc $RC · $OUT"
 sc waitno "{\"open\":[$OP],\"waitReview\":[$RV],\"create\":[$CR],\"keysApp\":[\"KEYS_GOOD\"],\"installWait\":[$IW]}"
 t0=$(date +%s); wr waitno run --bot research --keys --root "$T/root" --install-wait 3; t1=$(date +%s)
@@ -126,7 +126,7 @@ t0=$(date +%s); wr waitno run --bot research --keys --root "$T/root" --install-w
   && ok "B never live within --install-wait 3: rc 12 · install-greyed + diag · no keysBot · $((t1 - t0)) s" || no "B waitno: rc $RC · $OUT · $(calls) · $((t1 - t0)) s"
 [ "$(grep -c '^installWait$' "$T/calls.log")" -le 2 ] && ok "B a wait statement that comes back at once does not spin ($(grep -c '^installWait$' "$T/calls.log") calls in 3 s)" || no "B spin: $(grep -c '^installWait$' "$T/calls.log") calls"
 wr saved run --bot research --keys --root "$T/root" --install-wait 0
-[ "$RC" = 0 ] && [ "$(calls)" = "define pads=2 keys=True name=SlackMod research open waitReview create keysApp keysBot exit" ] && ok "B --install-wait 0: no wait statement (keysBot's own three loads only)" || no "B iw0: rc $RC · $(calls)"
+[ "$RC" = 0 ] && [ "$(calls)" = "define pads=2 keys=True name=mod-for-slack research open waitReview create keysApp keysBot exit" ] && ok "B --install-wait 0: no wait statement (keysBot's own three loads only)" || no "B iw0: rc $RC · $(calls)"
 sc waitflags "{\"open\":[$OP],\"waitReview\":[$RV],\"create\":[$CR],\"keysApp\":[\"KEYS_GOOD\"],\"installWait\":[{\"state\":\"install-wait\",\"app\":\"AFAKE12345\",\"reason\":\"install-greyed\",\"diag\":\"2=approved+bt,19=approved+h,35=empty+ebht\"}]}"
 wr waitflags run --bot research --keys --root "$T/root" --install-wait 1
 [ "$RC" = 12 ] && printf '%s' "$OUT" | grep -qx 'SLACKMOD_APP state=fallback app=AFAKE12345 reason=install-greyed diag=2=approved+bt,19=approved+h,35=empty+ebht' && ok "B diag letters b·h·t (tool-side causes) passed on" || no "B waitflags: rc $RC · $OUT"
@@ -173,7 +173,7 @@ done
 OUT="$(SLACKMOD_ASIDE="$T/bin/aside" python3 -I "$AUTO" run --bot research --keys --root "$T/nokit" 2>&1)"; RC=$?
 [ "$RC" = 2 ] && ok "B --keys without an installed kit → rc 2 (before any browser step)" || no "B keys nokit rc $RC"
 OUT="$(python3 -I "$AUTO" manifest --bot research 2>&1)"; RC=$?
-printf '%s' "$OUT" | python3 -I -c 'import json,sys; d=json.load(sys.stdin); assert d["display_information"]["name"]=="SlackMod research" and d["features"]["bot_user"]["display_name"]=="research" and d["settings"]["socket_mode_enabled"] is True and len(d["oauth_config"]["scopes"]["bot"])==8' && ok "B manifest: names = SlackMod research / research · rest as shipped" || no "B manifest rc $RC"
+printf '%s' "$OUT" | python3 -I -c 'import json,sys; d=json.load(sys.stdin); assert d["display_information"]["name"]=="mod-for-slack research" and d["features"]["bot_user"]["display_name"]=="research" and d["settings"]["socket_mode_enabled"] is True and len(d["oauth_config"]["scopes"]["bot"])==8' && ok "B manifest: names = SlackMod research / research · rest as shipped" || no "B manifest rc $RC"
 
 # ── C. open-terminal.sh --tokens-saved (no window: a PATH with no window tool → backend none writes the script only) ──
 OT="$SETUP_DIR/lib/open-terminal.sh"

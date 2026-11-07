@@ -104,7 +104,7 @@ def manifest_for(bot, path=None):
         usage('slack-app-manifest.json not found next to the setup folder')
     with open(src, encoding='utf-8') as f:
         man = json.load(f)
-    man['display_information']['name'] = 'SlackMod ' + bot
+    man['display_information']['name'] = 'mod-for-slack ' + bot
     man['features']['bot_user']['display_name'] = bot
     return man
 

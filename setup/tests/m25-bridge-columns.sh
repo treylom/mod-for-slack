@@ -315,13 +315,13 @@ cat > "$T/ps.txt" <<EOF
 99990007 python3 -m http.server
 EOF
 out="$(cw a Linux)"; rc=$?
-if [ $rc -eq 1 ] && printf '%s' "$out" | grep -q '이 리눅스 안에 SlackMod 밖에서 켠 Slack 다리 3개'; then
+if [ $rc -eq 1 ] && printf '%s' "$out" | grep -q '이 리눅스 안에 mod-for-slack 밖에서 켠 Slack 다리 3개'; then
   ok "⑩a check-windows: counts 3 (named bridge + two standalone «node dist/server.js» in channel-server folders) · skips other-app, ours (\$ROOT/app/), grep, python → rc 1"
 else no "⑩a rc=$rc"; printf '%s\n' "$out" | head -3; fi
 out="$(cw b Darwin)"; rc=$?
-printf '%s' "$out" | grep -q '이 맥 안에 SlackMod 밖에서 켠 Slack 다리 3개' && [ $rc -eq 1 ] && ok "⑩b uname Darwin → «이 맥» wording (rc 1)" || { no "⑩b rc=$rc"; printf '%s\n' "$out" | head -2; }
+printf '%s' "$out" | grep -q '이 맥 안에 mod-for-slack 밖에서 켠 Slack 다리 3개' && [ $rc -eq 1 ] && ok "⑩b uname Darwin → «이 맥» wording (rc 1)" || { no "⑩b rc=$rc"; printf '%s\n' "$out" | head -2; }
 out="$(cw c FreeBSD)"; rc=$?
-printf '%s' "$out" | grep -q '이 컴퓨터 안에 SlackMod 밖에서 켠 Slack 다리 3개' && [ $rc -eq 1 ] && ok "⑩c other OS → «이 컴퓨터» wording (rc 1)" || { no "⑩c rc=$rc"; printf '%s\n' "$out" | head -2; }
+printf '%s' "$out" | grep -q '이 컴퓨터 안에 mod-for-slack 밖에서 켠 Slack 다리 3개' && [ $rc -eq 1 ] && ok "⑩c other OS → «이 컴퓨터» wording (rc 1)" || { no "⑩c rc=$rc"; printf '%s\n' "$out" | head -2; }
 out="$(cw a Linux)"; printf '%s' "$out" | grep -q 'systemd' && ok "⑩d the message names the old shapes (예전 방식 · systemd)" || no "⑩d message"
 # negatives: nothing that is a bridge → not rc 1, no «다리 N개» line
 cat > "$T/ps.txt" <<EOF

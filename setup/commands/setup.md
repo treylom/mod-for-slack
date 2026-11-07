@@ -1,5 +1,5 @@
 ---
-description: MOD 설치 마법사 — 기존 설정을 가져오고, 고르고, 한 번에 설치하고, 점검하고, 토큰 넣을 터미널을 열어 줍니다
+description: mod-for-slack 설치 마법사 — 기존 설정을 가져오고, 고르고, 한 번에 설치하고, 점검하고, 토큰 넣을 터미널을 열어 줍니다
 argument-hint: [--answers FILE] [--section NAME]
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Skill
 ---

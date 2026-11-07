@@ -199,6 +199,8 @@ export function validateConfig(value) {
     if (!isPlainObject(ui)) errs.push('ui must be an object');
     else {
       if (ui.system_name !== undefined && typeof ui.system_name !== 'string') errs.push('ui.system_name must be a string');
+      // 11-08 (ui lane «이게 뭔가»): the pane's one folded line and its two layers — every key optional, each a string
+      if (ui.about !== undefined && (!isPlainObject(ui.about) || ['summary', 'ccmod', 'system'].some(k => ui.about[k] !== undefined && typeof ui.about[k] !== 'string'))) errs.push('ui.about must be {summary?, ccmod?, system?: string}');
       if (ui.memory_tools !== undefined && (!Array.isArray(ui.memory_tools) || ui.memory_tools.some(r => !isPlainObject(r) || typeof r.label !== 'string' || typeof r.match !== 'string'))) errs.push('ui.memory_tools must be [{label, match}]');
       // r2 B (ui lane): a letter A–E; an unknown letter is not an error here (the ui lane draws B and says so in one line)
       if (ui.tree_style !== undefined && typeof ui.tree_style !== 'string') errs.push('ui.tree_style must be a string (A|B|C|D|E)');

@@ -6,7 +6,8 @@
 // («with one, no title is drawn» :7407~7408) and the body scrolls as a whole in the engine's window (scroll.bodyRows ·
 // :14337~14344 · band.js T4); the pane's own top row is the engine's (only its ✕ there, real capture 22:18). A mod has no
 // row outside the body, so these lines lead it: the top of the first screen (scroll 0).
-import { strWidth, RESULT_LOOK } from './text.js'
+import { strWidth, wrapSegments, RESULT_LOOK } from './text.js'
+import { pressable } from './calls.js'
 import { LOOK, CURSOR } from './tree.js'
 import { TIER_INK } from './memory.js'
 import { UP_DOWN, CUR_MARK } from './team.js'
@@ -61,7 +62,7 @@ export const TC_LEGEND = [
 
 // Marks that carry their own words on screen («❖ 나무» · «◈ 프로젝트» · «◷ 예약» · «◎ 기억» · «◆ TeamClaude» · «▣ <이름>» ·
 // «← 돌아가기» · «↻ 다시 읽기» · «↳ w: 바꾸기 …»): a heading or a button's own name, not a state — not repeated here.
-export const SELF_LABELED = ['❖', '◈', '◷', '◆', '▣', '←', '↻', '↳']
+export const SELF_LABELED = ['❖', '◈', '◷', '◆', '▣', '←', '↻', '↳', 'ⓘ']
 
 // every mark explained somewhere on the pane: the top legend ∪ the TeamClaude part's legend line (R7c ③)
 export const legendMarks = () => new Set([...LEGEND, ...TC_LEGEND].flatMap((x) => x.marks))
@@ -119,19 +120,56 @@ function titleSegs(name, w) {
   return [{ text: '▣', bar: 'title', bold: true }, ...(t.length > 1 ? [{ text: t.slice(1), bar: 'title', bold: true }] : [])]
 }
 
+// 11-08 «이게 뭔가» (owner 11-07: the pane says too little of what it is — the Claude Code mod it runs on and the system
+// on top of it, each said apart): `about` = { text: settings.js aboutText (null = no line), open } → the lines right under
+// the title. Folded = one row «ⓘ 이게 뭔가 ▸ · <summary>» (the summary left out when the row has no room for it — the
+// title's way: shorter, never cut). Opened = «ⓘ 이게 뭔가 ▾», then «Claude Code mod · <ccmod>» and «<name> · <system>»,
+// each wrapped in the pane (text.js wrapSegments — never cut). The whole of it one press (i · click) — save a line with
+// nothing to open (no ccmod and no system): no arrow, no press. The mark: ⓘ («info» — the band's «m: ◇ MCP» has ◇ already).
+// Each layer's text is one `atom` (text.js itemsOf): a « · » inside the prose is not a place to break the row.
+export const ABOUT_PRESS = 'mh-about'
+export const ABOUT_KEY = 'i'
+export const MOD_LABEL = 'Claude Code mod'
+export const ABOUT_MARK = 'ⓘ'
+function aboutLines(name, about, w) {
+  const t = about && about.text
+  if (!t) return []
+  const more = Boolean(t.ccmod || t.system)
+  const open = more && about.open === true
+  const head = [{ text: ABOUT_MARK + ' 이게 뭔가', color: 'cyan', bold: true }, ...(more ? [{ text: open ? ' ▾' : ' ▸', color: 'cyan' }] : [])]
+  const sum = t.summary && !open ? [{ text: ' · ' + t.summary, color: 'sub' }] : []
+  const lead = (segs) => (more ? pressable(segs, ABOUT_PRESS, ABOUT_KEY) : segs)
+  const folded = [lead([...head, ...sum]), lead(head)].find((s) => strWidth(s.map((x) => x.text).join('')) <= w)
+  const rows = [{ key: 'about', segs: folded || wrapSegments(lead(head), w, 2)[0] }]
+  if (!open) return rows
+  // the 2-cell lead is put on after wrapping: inside one atom item it opened a fresh row, and wrapSegments drops a fresh
+  // row's leading spaces (real capture 11-08: the «Claude Code mod» row came out flush left once its text wrapped)
+  const pad = w > 8 ? 2 : 0
+  const layer = (key, label, text) => {
+    if (!text) return
+    wrapSegments([{ text: label, color: 'bright', bold: true }, { text: ' · ' + text, atom: true }], w - pad, 2).forEach((segs, n) =>
+      rows.push({ key: 'about-' + key + (n ? ':' + n : ''), segs: [...(pad ? [{ text: ' '.repeat(pad) }] : []), ...segs].map((s) => ({ ...s, press: ABOUT_PRESS })) }))
+  }
+  layer('mod', MOD_LABEL, t.ccmod)
+  layer('system', name || 'mods-harness', t.system)
+  return rows
+}
+
 // Title (1 line) + legend in `cols` cells: one line when it all fits (164 cells), else one line per kind — states, then
 // structure and numbers (84 · 74 · the 71-cell dock's 69: 2 lines, R7c ①); a kind wider than its line wraps by whole items.
 // P2: the rules over and under the legend are the pane body's (band.js paneLines rule-head · rule-tree, index.js paneOf).
-export function paneHead(name, cols) {
+// 11-08: `about` (optional) = the «이게 뭔가» lines, between the title and the legend (aboutLines) · left out = as before.
+export function paneHead(name, cols, about) {
   const w = Math.max(1, cols)
   const title = titleSegs(name, w)
+  const what = aboutLines(name, about, w)
   const one = fit(LEGEND, w)
   const lines = one ? [one] : [1, 2].flatMap((k) => {
     const items = LEGEND.filter((it) => it.kind === k)
     const r = fit(items, w)
     return r ? [r] : wrap(items, w)
   })
-  return [{ key: 'title', segs: title, fill: 'title' }, ...lines.map((segs, i) => ({ key: 'legend-' + i, segs }))]
+  return [{ key: 'title', segs: title, fill: 'title' }, ...what, ...lines.map((segs, i) => ({ key: 'legend-' + i, segs }))]
 }
 
 // The TeamClaude part's legend line (R7c ②): «표지» then the marks, within `cols` — narrow: whole items off the end (never an

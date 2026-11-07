@@ -2,6 +2,9 @@
 // The file itself is found by index.js: env MODS_HARNESS_CONFIG first (봇 10-17), else the plugin's own
 // config/local.config.json (same rule as the session lane). Every key is optional; defaults below.
 //   ui.system_name      띠·칸 이름 (비면 «mods-harness», 봇 10-17)
+//   ui.about            { summary, ccmod, system } 칸 제목 밑 «ⓘ 이게 뭔가 ▸ · <summary>» 접힌 1줄 · 펼침(i · 누르기) =
+//                       «Claude Code mod · <ccmod>» 그 밑 «<system_name> · <system>» (legend.js aboutLines) · 키마다 선택 ·
+//                       없음·전부 빔 = 줄 없음(기본 · 칸은 전과 같음) · 각 400자까지 · 줄바꿈·연속 공백은 한 칸으로 (11-08)
 //   ui.memory_tools     [{ label, match, tier }] 기억 칸에 셀 도구 호출 · tier = 공유|개별 (memory.js)
 //   ui.team_claude_urls [주소…] team claude 상태 주소(GET 만 · http/https · 칸이 열려 있을 때만 30초마다 읽음, team.js)
 //   ui.team_claude_control  TeamClaude 계정 조작(바꾸기·끄기/켜기·순서·지우기 = Claude 상태 주소의 origin 으로 POST) ·
@@ -88,6 +91,16 @@ export function cronPin(v) {
   return names(v).map((s) => s.trim()).filter(Boolean).slice(0, 8)
 }
 
+// 11-08 «이게 뭔가»: ui.about → { summary, ccmod, system } as one-line strings (spaces and line breaks become one space,
+// at most ABOUT_MAX characters each) · not an object, or every key empty = null (no line on the pane)
+export const ABOUT_MAX = 400
+export function aboutText(v) {
+  const a = obj(v)
+  const one = (s) => (typeof s === 'string' ? s.replace(/\s+/g, ' ').trim().slice(0, ABOUT_MAX) : '')
+  const out = { summary: one(a.summary), ccmod: one(a.ccmod), system: one(a.system) }
+  return out.summary || out.ccmod || out.system ? out : null
+}
+
 export function uiSettings(raw, home) {
   const r = obj(raw)
   const ui = obj(r.ui)
@@ -96,6 +109,7 @@ export function uiSettings(raw, home) {
   const bots = Array.isArray(r.bots) ? r.bots.map((b) => b && b.name) : []
   return {
     name: systemName(ui.system_name),
+    about: aboutText(ui.about),
     registryDir: path(session.registry_dir, '$HOME/.mods-harness/registry.d'),
     liveDir: liveDirOf(r, home),   // one rule with the session lane's end-rule clock (core.js liveDirOf)
     launchAgentsDir: path(ui.launch_agents_dir, '$HOME/Library/LaunchAgents'),

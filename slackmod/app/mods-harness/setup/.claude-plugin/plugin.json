@@ -1,7 +1,7 @@
 {
   "name": "mods-setup",
   "version": "0.1.0",
-  "description": "MOD 설치 마법사 — Claude Code 안에서 기존 설정을 가져오고, 고르고, 한 번에 설치하고, 점검하고, 터미널을 열어 줍니다. (/mods-setup:setup)",
+  "description": "mod-for-slack 설치 마법사 — Claude Code 안에서 기존 설정을 가져오고, 고르고, 한 번에 설치하고, 점검하고, 터미널을 열어 줍니다. (/mods-setup:setup)",
   "author": {
     "name": "mods-harness contributors"
   },

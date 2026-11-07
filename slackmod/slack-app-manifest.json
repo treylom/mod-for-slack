@@ -4,8 +4,8 @@
     "minor_version": 1
   },
   "display_information": {
-    "name": "SlackMod lead",
-    "description": "Claude Code bot connected by SlackMod (one Slack app per bot)"
+    "name": "mod-for-slack lead",
+    "description": "Claude Code bot connected by mod-for-slack (one Slack app per bot)"
   },
   "features": {
     "app_home": {

@@ -66,7 +66,7 @@ done
 CLAUDE_VER=""
 [ -n "$CLAUDE_BIN" ] && CLAUDE_VER="$("$CLAUDE_BIN" --version 2>/dev/null | awk '{print $1}' || true)"
 
-say "MOD 설치 점검 — $ROOT"
+say "mod-for-slack 설치 점검 — $ROOT"
 say "  OS       $OS$( [ "$WSL" = 1 ] && printf ' (WSL)') · 셸 $SHELL_NAME"
 say "  claude   ${CLAUDE_BIN:-(없음)}${CLAUDE_VER:+ · 판 $CLAUDE_VER}"
 say "  node     ${NODE_BIN:-(없음)}$( [ -n "$NODE_BIN" ] && printf ' · %s' "$NODE_MAJOR" )"

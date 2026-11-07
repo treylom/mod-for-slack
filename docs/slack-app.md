@@ -4,11 +4,12 @@
 
 > **설치 마법사가 대신 할 수 있습니다.** 이 컴퓨터에 브라우저 도구 Aside 가 있으면 설치 마법사(`bash install.sh`)가 이 문서의 앱 만들기부터 열쇠(토큰) 저장까지 브라우저로 대신합니다 — 사람 몫은 워크스페이스 고르기와 Next(로그인이 안 돼 있으면 로그인)뿐이고, 열쇠는 AI 대화와 출력에 나오지 않고 바로 봇에 저장됩니다(브라우저 탭에는 Slack 이 평소처럼 열쇠를 잠깐 띄웁니다). 열쇠 단계만 사람이 하는 «앱 만들기만 대신»도 고를 수 있습니다. 이 문서는 직접 할 때의 순서입니다.
 
-SlackMod 봇 하나는 Slack 앱 하나를 씁니다. 봇이 둘이면 앱도 둘 만듭니다(두 봇이 한 앱을 같이 쓰면 메시지가 갈립니다). 이 문서는 앱 하나를 만들어 SlackMod 에 넣을 열쇠(토큰) 두 개를 받는 순서입니다.
+mod-for-slack 봇 하나는 Slack 앱 하나를 씁니다. 봇이 둘이면 앱도 둘 만듭니다(두 봇이 한 앱을 같이 쓰면 메시지가 갈립니다). 이 문서는 앱 하나를 만들어 mod-for-slack 에 넣을 열쇠(토큰) 두 개를 받는 순서입니다.
 
 - 준비물: Slack 워크스페이스에 로그인된 브라우저 · 저장소의 [`slackmod/slack-app-manifest.json`](../slackmod/slack-app-manifest.json)(앱 설정을 한 번에 채우는 파일)
 - 받는 열쇠: `xapp-` 로 시작하는 앱 토큰 1개 · `xoxb-` 로 시작하는 봇 토큰 1개
 - Slack 화면 글은 계정 언어에 따라 영어와 한국어가 섞여 보일 수 있습니다(아래 그림도 섞여 있습니다). 본문에 적은 버튼 이름으로 찾으면 됩니다.
+- 설치 허락 그림과 봇 토큰 범위 그림은 이름을 바꾸기 전에 찍어 앱 이름이 «SlackMod lead» 로 보입니다. 지금 매니페스트로 만들면 «mod-for-slack lead» 로 보입니다.
 
 > **열쇠는 비밀번호와 같습니다.** 채팅창·이슈·스크린샷·AI 대화에 붙이지 말고, 마지막 단계에서 터미널에 바로 붙여 넣으세요.
 
@@ -23,7 +24,7 @@ SlackMod 봇 하나는 Slack 앱 하나를 씁니다. 봇이 둘이면 앱도 �
    ![Create new app 창에서 Paste a manifest 선택](img/slack-app/02-paste-a-manifest.png)
 
 3. 입력 칸의 예시 글을 지우고 `slackmod/slack-app-manifest.json` 내용을 통째로 붙여 넣습니다. 아래 **Workspace** 에서 봇을 둘 워크스페이스를 고르고 **Next**.
-   - 봇이 여럿이면 붙여 넣기 전에 `"name": "SlackMod lead"` 와 `"display_name": "lead"` 두 곳을 봇 이름으로 바꾸세요. Slack 에서 `@lead` 처럼 부를 이름이 `display_name` 입니다.
+   - 봇이 여럿이면 붙여 넣기 전에 `"name": "mod-for-slack lead"` 와 `"display_name": "lead"` 두 곳을 봇 이름으로 바꾸세요. Slack 에서 `@lead` 처럼 부를 이름이 `display_name` 입니다.
 
    ![매니페스트를 붙여 넣고 워크스페이스를 고른 화면(워크스페이스 이름·로고는 가림)](img/slack-app/03-manifest-and-workspace.png)
 
@@ -35,7 +36,7 @@ SlackMod 봇 하나는 Slack 앱 하나를 씁니다. 봇이 둘이면 앱도 �
 
 ![앱 설정 왼쪽 메뉴 — Basic Information · Socket Mode · OAuth & Permissions · Event Subscriptions](img/slack-app/05-left-menu.png)
 
-**Socket Mode** 는 매니페스트가 이미 켜 두었습니다. SlackMod 는 이 방식으로 Slack 과 연결하므로 공개 주소(웹 서버)가 필요 없습니다.
+**Socket Mode** 는 매니페스트가 이미 켜 두었습니다. mod-for-slack 은 이 방식으로 Slack 과 연결하므로 공개 주소(웹 서버)가 필요 없습니다.
 
 ![Socket Mode 화면 — Enable Socket Mode 가 켜져 있음](img/slack-app/06-socket-mode-on.png)
 
@@ -49,7 +50,7 @@ SlackMod 봇 하나는 Slack 앱 하나를 씁니다. 봇이 둘이면 앱도 �
 
    ![Generate an app-level token 창 — 이름 socket · 권한 connections:write](img/slack-app/08-app-token-dialog.png)
 
-3. Slack 이 `xapp-` 로 시작하는 토큰을 보여 줍니다. 메모장이나 채팅에 옮겨 두지 마세요. 이 화면은 이 브라우저 탭에 그대로 두고, 다음 단계는 앱 설정을 **새 탭**으로 하나 더 열어 진행합니다(아래 «5. SlackMod 에 열쇠 넣기»에서 두 탭을 오가며 붙여 넣습니다).
+3. Slack 이 `xapp-` 로 시작하는 토큰을 보여 줍니다. 메모장이나 채팅에 옮겨 두지 마세요. 이 화면은 이 브라우저 탭에 그대로 두고, 다음 단계는 앱 설정을 **새 탭**으로 하나 더 열어 진행합니다(아래 «5. mod-for-slack 에 열쇠 넣기»에서 두 탭을 오가며 붙여 넣습니다).
 
 ## 3. 워크스페이스에 설치하고 봇 토큰(`xoxb-`) 받기
 
@@ -63,9 +64,9 @@ SlackMod 봇 하나는 Slack 앱 하나를 씁니다. 봇이 둘이면 앱도 �
 
    - 워크스페이스가 앱 설치에 관리자 승인을 요구하도록 설정돼 있으면, 이 자리에서 바로 설치되지 않고 관리자의 승인을 기다립니다. 승인이 나면 다시 이 단계를 진행하세요.
 
-3. 설치가 끝나면 같은 **OAuth Tokens** 칸에 `xoxb-` 로 시작하는 봇 토큰(Bot User OAuth Token)이 생깁니다. 이것도 «5. SlackMod 에 열쇠 넣기»에서 복사합니다.
+3. 설치가 끝나면 같은 **OAuth Tokens** 칸에 `xoxb-` 로 시작하는 봇 토큰(Bot User OAuth Token)이 생깁니다. 이것도 «5. mod-for-slack 에 열쇠 넣기»에서 복사합니다.
 
-같은 화면 아래 **봇 토큰 범위**(Bot Token Scopes)에 매니페스트가 넣은 권한 8개가 있습니다. SlackMod 가 쓰는 곳은 이렇습니다.
+같은 화면 아래 **봇 토큰 범위**(Bot Token Scopes)에 매니페스트가 넣은 권한 8개가 있습니다. mod-for-slack 이 쓰는 곳은 이렇습니다.
 
 ![봇 토큰 범위 8개 — app_mentions:read · channels:history · chat:write · files:read · groups:history · im:history · im:read · reactions:write](img/slack-app/11-bot-token-scopes.png)
 
@@ -85,14 +86,14 @@ SlackMod 봇 하나는 Slack 앱 하나를 씁니다. 봇이 둘이면 앱도 �
 
 ![Subscribe to bot events — app_mention · message.im](img/slack-app/12-bot-events.png)
 
-- `app_mention` = 채널에서 봇을 `@` 로 부른 글 · `message.im` = 봇에게 온 DM. SlackMod 기본은 이 둘입니다.
+- `app_mention` = 채널에서 봇을 `@` 로 부른 글 · `message.im` = 봇에게 온 DM. mod-for-slack 기본은 이 둘입니다.
 - `message.channels` 는 기본으로 넣지 않았습니다. 이것이 없으면 Slack 이 봇을 부르지 않은 채널 글을 봇에게 아예 보내지 않습니다. 그래서 이런 경우에만 **Add Bot User Event** 로 더하세요.
   - 봇이 이미 답하고 있는 스레드에서 `@봇` 없이 이어 쓴 글도 받게 하고 싶을 때
   - 봇끼리 일을 넘길 때, 멘션 없이 써서 전달되지 않았다고 알려 주는 알림(`slack.drop_notice_no_mention`)을 쓰고 싶을 때
 - 더한 뒤 화면 위쪽에 앱을 다시 설치하라는 안내가 뜨면 그 안내대로 다시 설치하세요.
 - 한 채널에 봇이 여럿이어도 괜찮습니다. 채널 글은 그 봇을 부른 글만 봇에게 넘어갑니다(봇이 이미 답하고 있는 스레드에서 멘션 없이 이어 쓴 글은 예외).
 
-## 5. SlackMod 에 열쇠 넣기
+## 5. mod-for-slack 에 열쇠 넣기
 
 1. 봇을 쓸 채널에 앱을 초대합니다: 그 채널에서 `/invite @lead`(이름을 바꿨으면 바꾼 `display_name`).
 2. 설치 마법사가 묻는 두 값을 준비합니다: 채널 ID(C 로 시작 · 채널 상세 맨 아래) · 봇에게 말할 사람의 사용자 ID(U 로 시작 · 프로필 ⋯ → 멤버 ID 복사).
@@ -119,7 +120,7 @@ SlackMod 봇 하나는 Slack 앱 하나를 씁니다. 봇이 둘이면 앱도 �
 - **토큰 만들기 창의 Generate.** 누르면 토큰이 화면에 바로 나오니, 에이전트가 그 화면을 읽지 않게 사람이 누르세요.
 - **설치 허락 화면의 «허용».** 워크스페이스에 앱을 들이는 결정이라 사람이 직접 누르세요(이 문서를 만들 때도 허용은 누르지 않고 취소했습니다).
 - **관리자 승인.** 워크스페이스가 승인을 요구하면 관리자가 허락해야 합니다.
-- **열쇠 두 개를 SlackMod 에 넣기.** 지금은 «5. SlackMod 에 열쇠 넣기»처럼 사람이 터미널에 붙여 넣는 방법뿐입니다.
+- **열쇠 두 개를 mod-for-slack 에 넣기.** 지금은 «5. mod-for-slack 에 열쇠 넣기»처럼 사람이 터미널에 붙여 넣는 방법뿐입니다.
 
 열쇠가 대화·기록에 남지 않게 하려면:
 
@@ -129,7 +130,7 @@ SlackMod 봇 하나는 Slack 앱 하나를 씁니다. 봇이 둘이면 앱도 �
 
 ## 앱을 지우려면
 
-**Basic Information** 맨 아래 **Delete App**. 확인 창 안내대로, 앱을 지우면 그 앱의 토큰도 모두 쓸 수 없게 되고 되돌릴 수 없습니다. SlackMod 쪽을 되돌리는 법은 [README](../README.md) 의 «되돌리기»에 있습니다.
+**Basic Information** 맨 아래 **Delete App**. 확인 창 안내대로, 앱을 지우면 그 앱의 토큰도 모두 쓸 수 없게 되고 되돌릴 수 없습니다. mod-for-slack 쪽을 되돌리는 법은 [README](../README.md) 의 «되돌리기»에 있습니다.
 
 ![Basic Information 맨 아래 Delete App 칸](img/slack-app/13-delete-app.png)
 

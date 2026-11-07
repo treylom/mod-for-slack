@@ -14,7 +14,7 @@ import { headerSegments, jobSegments, counts, problemSegments, ownRows, jobDetai
 import { pressable, toolsBlock, toolsMin } from './calls.js'
 import { botShown } from './display.js'
 import { unhex } from './project.js'
-import { ruleLine } from './legend.js'
+import { ruleLine, ABOUT_PRESS } from './legend.js'
 import { pill, pillSegments } from './skin.js'
 import { MODEL_PRESS, MODEL_CHOICES, EFFORTS, pickPress, cellOf } from './modelpick.js'
 
@@ -278,6 +278,7 @@ export function actionOf(key) {
   let m = /^mh-tool-(skill|mcp|plugin)(-more)?$/.exec(k)
   if (m) return { type: 'tool', kind: m[1] }
   if (k === 'mh-cron') return { type: 'cron' }
+  if (k === ABOUT_PRESS) return { type: 'about' } // 11-08 «ⓘ 이게 뭔가» (legend.js aboutLines)
   if (k === 'mh-proj') return { type: 'proj' }
   // 10-20 패널 ✕ (project.js PCLOSE_*): a project's ✕ · its confirm's 닫기 · 취소 («ok» / «no» are not hex: never a name)
   m = /^mh-pclose-ok-((?:[0-9a-f]{2})+)$/.exec(k)

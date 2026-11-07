@@ -72,6 +72,8 @@ else
   step "PARTIAL tree (no wizard yet)"
 fi
 cp "$W/src/public/root/README.md" "$W/src/public/root/SUPPORT.md" "$W/src/public/root/LICENSE" "$S/"
+# the English README (optional file) — a root *.md, so the scan, the name mask and the jargon check below cover it too
+if [ -f "$W/src/public/root/README.en.md" ]; then cp "$W/src/public/root/README.en.md" "$S/"; fi
 # the change log (optional file): km releases not yet listed get one line each, on the staged copy — before the scan
 # below, so those lines are scanned like any root doc. km unreachable / gh missing = one WARN line, the build goes on.
 if [ -f "$W/src/public/root/CHANGELOG.md" ]; then
@@ -137,7 +139,7 @@ git -C "$S" init -q -b main
 git -C "$S" add -A
 GIT_AUTHOR_NAME="$PUB_NAME" GIT_AUTHOR_EMAIL="$PUB_EMAIL" GIT_COMMITTER_NAME="$PUB_NAME" GIT_COMMITTER_EMAIL="$PUB_EMAIL" \
 GIT_AUTHOR_DATE="$PUB_DATE" GIT_COMMITTER_DATE="$PUB_DATE" \
-  git -C "$S" -c commit.gpgsign=false commit -q -m "SlackMod preview (${SHA:0:7} · bridge ${TC_SHA:0:7})"
+  git -C "$S" -c commit.gpgsign=false commit -q -m "mod-for-slack preview (${SHA:0:7} · bridge ${TC_SHA:0:7})"
 [ "$(git -C "$S" rev-list --count HEAD)" = 1 ] || fail "expected exactly one commit"
 [ -z "$(git -C "$S" remote)" ] || fail "a remote exists"
 # 5. the tarball = the committed files only (git archive: no .git, no builder user/group names) → metadata gate → only then anything lands in <out>
