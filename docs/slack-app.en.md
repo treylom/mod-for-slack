@@ -2,6 +2,8 @@
 
 [한국어](slack-app.md)
 
+> **The setup wizard can do this for you.** If the browser tool Aside is on this computer, the setup wizard (`bash install.sh`) does everything on this page in the browser, from creating the app to saving the tokens — you only pick the workspace and press Next (and sign in if needed), and the tokens go straight into the bot without showing up in the AI chat or its output (the browser tab shows them briefly, as Slack always does). You can also choose «create the app only» and do the token steps yourself. This page is the order for doing it by hand.
+
 Each SlackMod bot uses its own Slack app. Two bots means two apps (if two bots share one app, messages get split between them). This page walks through creating one app and getting the two tokens SlackMod needs.
 
 - You need: a browser signed in to your Slack workspace · [`slackmod/slack-app-manifest.json`](../slackmod/slack-app-manifest.json) from this repository (it fills in all app settings at once)
@@ -106,6 +108,8 @@ Further down the same page, **Bot Token Scopes** lists the 8 permissions from th
 4. Check: in `slackmod status` the bot's token is no longer `missing`. Starting the bot is the same as the quick start in the [README](../README.md).
 
 ## Letting a browser AI agent do it
+
+The setup wizard's «do it all in the browser» is different from what follows. The wizard moves the browser only through its own fixed script; the script also clicks **Generate** and **Allow**, but it takes each token out of the page and saves it straight into the bot (nothing in the AI chat or its output, and no screenshots). The rest of this section is about handing the work to an agent yourself, outside the wizard.
 
 A browser AI agent (for example Aside or ego lite) can move through sections 1–4 above for you (from creating the app to checking the events). Stop the agent at two buttons — **Generate** in the token window and **Allow** on the install consent page — and click them yourself (below). When you hand back to the agent, keep it off any tab that shows a token. The screenshots on this page were taken by driving the Aside browser automatically: creating the app from the manifest, picking the workspace, the settings pages, the token window and the install consent page all worked that way. ego lite was not tried.
 

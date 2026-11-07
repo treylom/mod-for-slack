@@ -1,4 +1,4 @@
-bd8e9369660ac4f1d7853d4af07aceb160b4c67ea37c8744a443114a8fb33674  ./MANIFEST.txt
+9502826102856d5dc9ab46fae12a44fe6cdb499c68c52525754a8a256a4e0d1f  ./MANIFEST.txt
 91d54b3b93a136b6e266238812bd98d0ca9f8a4e465af1f1b5583dd4629f3f5b  ./README.md
 77ee8f736d2f111289d221279baf442491ebf1642b4b3a13e9087878e67dc0ea  ./app/channel-server/.env.example
 f39ced4bda4411117d2721ef2e35e23e065e7da6b65c2bab234facae8908abc1  ./app/channel-server/BRIDGE-SOURCE.txt
@@ -75,7 +75,7 @@ b929a9bab551bed1672152d796495d3afdd8c7264f05ae09e839ae40fee4de37  ./app/mods-har
 1dff5ec7beae1c7713dfab2145f895efa788431b5af7a2fccd7487883ac54930  ./app/mods-harness/setup/lib/history.py
 e98a82829909559376df382d16364c4cc4540205feb841da4ed1f9fa64e671e0  ./app/mods-harness/setup/lib/import.sh
 570853c9032e0c293026ef03b4f2d3d3a6d155b9256fa3f332b1c3b44ecfa5c0  ./app/mods-harness/setup/lib/models.py
-b4bdc6c7b4b851fd9543c3e0c0311efaf47e3713b27b22bf14db0d1ad6c0e70e  ./app/mods-harness/setup/lib/open-terminal.sh
+624cdf2ecaa186bc273f9518b50437af76c85190afffb4a681b9cd7a79a6af39  ./app/mods-harness/setup/lib/open-terminal.sh
 8857d7c2aa68698cf1263e0a312f727e4158f21784d54ebed3e2a20b6fd61c04  ./app/mods-harness/setup/lib/optional.sh
 46d4bddcb5c04bebcf7abcee3cfd8cb7f45cca77be9ea1543f5015ea9ba2cc10  ./app/mods-harness/setup/lib/persona-check.py
 164a26efaaa18e123e6a7ed4be6a04c8e25e2753211bd9cdfb756479c42158ed  ./app/mods-harness/setup/lib/persona-fill.py
@@ -83,6 +83,8 @@ b4bdc6c7b4b851fd9543c3e0c0311efaf47e3713b27b22bf14db0d1ad6c0e70e  ./app/mods-har
 3e6dfd5a48c8fcfffdfbb551d73bc54dc1b5322674027b8467c0621404db3fa1  ./app/mods-harness/setup/lib/projects.py
 73967cf564c84d008027b5b826392e49c6ce1be6c2b16680029a3d55714d26bb  ./app/mods-harness/setup/lib/recommend.py
 4b7c078b5577daed9fb944698061ced37f94d8204d9796393309c3ca91d8471e  ./app/mods-harness/setup/lib/role-default.sh
+5838c694c5c724e40dd6296f12ca075eb319d443a319e5eb8d8e6e73188aa3f4  ./app/mods-harness/setup/lib/slack-app-auto.py
+e232ed3d4ebc8546383335d9647d1fa9727e1bf2a6dd0d94e8bf2d740963e3e1  ./app/mods-harness/setup/lib/slack-app-driver.js
 8286c557e9d0c64348f660264091360852417fdcb7ee161c63fa7834cbf7d024  ./app/mods-harness/src/config/index.js
 ed67616d0004d86ce8408fb518102e01c0223a1a38ac3affcbfdc108b99a0cec  ./app/mods-harness/src/config/loader.mjs
 6bf04e18da801394217bf4db39a94e6715df213deb2598225a3d415e3f1a6fa6  ./app/mods-harness/src/hooks-port/bridge.js

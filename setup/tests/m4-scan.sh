@@ -125,7 +125,7 @@ fp_check() { FPN=$((FPN + 1)); [ "$SAME" = 1 ] || FPBAD="$FPBAD $1"; }
 run_tool "$EH" "$T/env-empty.json" "$T/bin-empty" Linux "$LIB/envscan.py" --home "$EH"; fp_check envscan-empty
 got="$(q "$T/env-empty.json" '"|".join(map(str,[d["os"],d["wsl"],d["shell"],d["mux"],d["claude"],d["codex"]["found"],d["memory"],d["wiki"]["vaults"],d["plugins"],d["skills"],d["mcp"],d["official"]]))')"
 want="Linux|False|zsh|[]|{'found': False, 'version': None}|False|{'auto': 'on', 'auto_dirs': 0, 'external': []}|[]|[]|[]|[]|{'path': None, 'count': 0}"
-[ $RC -eq 0 ] && [ "$got" = "$want" ] && [ -z "$(ls -A "$EH")" ] && ok "envscan empty computer: rc 0 · every value empty / off-by-default («$got»)" || { no "envscan empty rc=$RC got=$got"; cat "$T/env-empty.json.err"; }
+[ $RC -eq 0 ] && [ "$got" = "$want" ] && [ -z "$(ls -A "$EH")" ] && ok "envscan empty computer: rc 0 · every value empty / off-by-default («${got}»)" || { no "envscan empty rc=$RC got=$got"; cat "$T/env-empty.json.err"; }
 
 run_tool "$FH" "$T/env-full.json" "$T/bin-full" "MINGW64_NT-10.0" "$LIB/envscan.py" --home "$FH"; fp_check envscan-full
 got="$(q "$T/env-full.json" '"|".join(map(str,[d["os"],d["shell"],d["mux"],d["claude"],d["codex"]["found"],d["memory"],d["plugins"],d["skills"],d["mcp"]]))')"

@@ -2,7 +2,8 @@
 # u8-locale.sh — macOS /bin/bash 3.2 under a UTF-8 locale reads the first byte of a multibyte character that directly
 # follows «$name» as part of the name («$bt·$at» → «bt\xc2: unbound variable» with set -u, an empty value without it).
 # A user's terminal is almost always UTF-8, so every shipped shell file must brace such names («${bt}·${at}»).
-#   ① static: shipped shell files (setup/lib · port/bin · port/lib · port/install.sh · install.sh) have 0 «$name<non-ASCII>»
+#   ① static: shipped shell files (setup/lib · port/bin · port/lib · port/install.sh · install.sh) and the test scripts
+#      (setup/tests · port/tests · public/tests — 11-07: «$v» in a test broke under a UTF-8 locale) have 0 «$name<non-ASCII>»
 #      outside single quotes ② doctor.sh under LANG=en_US.UTF-8 in a throwaway HOME prints no «unbound variable».
 # Prints PASS/FAIL lines · rc 0 = all PASS.
 set -uo pipefail
@@ -13,7 +14,19 @@ hits="$(python3 -I - "$REPO" <<'PY'
 import os, re, sys
 repo = sys.argv[1]
 pat = re.compile(r'\$([A-Za-z_][A-Za-z0-9_]*)(?=[^\x00-\x7f])')
-roots = ['setup/lib', 'port/bin', 'port/lib', 'port/install.sh', 'install.sh']
+roots = ['setup/lib', 'port/bin', 'port/lib', 'port/install.sh', 'install.sh', 'setup/tests', 'port/tests', 'public/tests']   # tests too: a UTF-8 terminal runs them
+SQ, DQ, BS = chr(39), chr(34), chr(92)   # (no quote characters in this text: bash 3.2 scans them inside $(...))
+def in_single(l, at):   # quote state at «at»: an apostrophe inside a double-quoted string is a letter, not a quote (11-07)
+    q, i = '', 0
+    while i < at:
+        c = l[i]
+        if q == SQ:
+            if c == SQ: q = ''
+        elif c == BS: i += 1
+        elif c == DQ: q = '' if q == DQ else DQ
+        elif c == SQ and q == '': q = SQ
+        i += 1
+    return q == SQ
 files = []
 for r in roots:
     p = os.path.join(repo, r)
@@ -31,12 +44,12 @@ for q in files:
     for i, l in enumerate(lines, 1):
         if l.lstrip().startswith('#'): continue
         for m in pat.finditer(l):
-            if l[:m.start()].count("'") % 2: continue   # inside single quotes = not expanded
+            if in_single(l, m.start()): continue   # inside single quotes = not expanded
             print(f'{os.path.relpath(q, repo)}:{i}  ${m.group(1)}')
 PY
 )"
 n="$(printf '%s' "$hits" | grep -c . || true)"
-if [ "$n" = 0 ]; then ok "static: shipped shell files have 0 «\$name<non-ASCII>» outside single quotes"
+if [ "$n" = 0 ]; then ok "static: shell files (shipped + tests) have 0 «\$name<non-ASCII>» outside single quotes"
 else no "static: ${n} unbraced \$name directly before a non-ASCII character:"; printf '%s\n' "$hits" | head -10 | sed 's/^/    /'; fi
 D="$REPO/setup/lib/doctor.sh"; CFG="$REPO/port/lib/slackmod_config.py"
 if [ -f "$D" ] && [ -f "$CFG" ]; then

@@ -205,7 +205,7 @@ LEAK="$( { printf '%s\n%s\n%s\n%s\n' "$OUT14" "$SJ" "$ST" "$DOC"; cat "$H/.slack
           "$H/.slackmod/bots/lead/launch.sh" "$H/.slackmod/bots/lead/mcp.json" "$H/.slackmod/bots/lead/slack/.env" "$H/.slackmod/bots/watch/slack/.env" 2>/dev/null; } | grep -c -- "$FAKEJ")"
 [ $SJRC -eq 0 ] && [ "$ENVN" = 1 ] && [ "$LEAK" = 0 ] && [ "$(mode_of "$KF14")" = 600 ] && printf '%s' "$DOC" | grep -q '^요약: ' \
   && ok "⑭b key bait: «slackmod set-judge-key lead» ← fake key → lead slack/route-judge.key 1× (0600) · lead .env · install output · set-judge-key output · status · doctor ($(printf '%s' "$DOC" | grep '^요약: ' | tail -1)) · config · setup · harness · launch · mcp · other bot .env = 0×" \
-  || { no "⑭b set-judge-key rc=$SJRC key file $ENVN× leak $LEAK× mode $(mode_of "$KF14")"; printf '%s\n' "$SJ" | tail -2; }
+  || { no "⑭b set-judge-key rc=$SJRC key file ${ENVN}× leak ${LEAK}× mode $(mode_of "$KF14")"; printf '%s\n' "$SJ" | tail -2; }
 SJ2="$(printf '\n' | env HOME="$H" "$BASHX" "$H/.slackmod/bin/slackmod" set-judge-key lead 2>&1)"; SJ2RC=$?
 [ $SJ2RC -ne 0 ] && [ "$(grep -c -- "$FAKEJ" "$KF14")" = 1 ] && printf '%s' "$SJ2" | grep -q 'nothing saved' \
   && ok "⑭c empty input → refused (rc $SJ2RC · «nothing saved») · the key already there kept" || { no "⑭c rc=$SJ2RC"; printf '%s\n' "$SJ2" | tail -2; }

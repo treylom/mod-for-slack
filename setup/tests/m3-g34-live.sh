@@ -97,8 +97,8 @@ leak="$(grep -rl 'BAITBAITBAIT' "$H/.slackmod" "$H/bots" "$T/live.out" 2>/dev/nu
 # ── G3 · three role defaults · G4 · filled persona + pre-install check ──
 for pair in alpha:lead bravo:watch charlie:research; do
   b="${pair%%:*}"; r="${pair##*:}"; d="$H/bots/$b"
-  if [ -f "$d/persona.md" ] && [ -f "$d/CLAUDE.md" ] && grep -qE "^role: *$r\$" "$d/persona.md"; then ok "G3 role default «$r» → $b: persona.md + CLAUDE.md (role: $r)"
-  else no "G3 role default «$r» → $b: persona.md/CLAUDE.md missing or role line ≠ $r"; fi
+  if [ -f "$d/persona.md" ] && [ -f "$d/CLAUDE.md" ] && grep -qE "^role: *$r\$" "$d/persona.md"; then ok "G3 role default «${r}» → $b: persona.md + CLAUDE.md (role: $r)"
+  else no "G3 role default «${r}» → $b: persona.md/CLAUDE.md missing or role line ≠ $r"; fi
   if grep -q 'generated: bot-interview' "$d/persona.md" 2>/dev/null && grep -qE "^name: *$b\$" "$d/persona.md"; then ok "G4 $b persona.md filled (fill mark + name: $b)"
   else no "G4 $b persona.md not filled from the skeleton (mark or name missing)"; fi
   python3 -I "$TREE/setup/lib/persona-check.py" "$d" > "$T/check-$b.txt" 2>&1; prc=$?
@@ -118,10 +118,10 @@ python3 -I "$TREE/setup/lib/persona-check.py" "$N/stub" > "$T/check-neg-stub.txt
 env -i HOME="$H" PATH="$PATH" SHELL=/bin/zsh "$BASHX" "$TREE/setup/lib/doctor.sh" > "$T/doctor.txt" 2>&1
 sum="$(grep '^요약:' "$T/doctor.txt" | tail -1)"
 tot="$(printf '%s' "$sum" | grep -oE '[0-9]+' | awk '{s+=$1} END {print s+0}')"
-[ "$tot" = 12 ] && ok "G2 doctor «$sum» = 12 cells (no blank cell)" || no "G2 doctor summary «$sum» counts $tot cells (want 12)"
+[ "$tot" = 12 ] && ok "G2 doctor «${sum}» = 12 cells (no blank cell)" || no "G2 doctor summary «${sum}» counts $tot cells (want 12)"
 OUT="$(env SHELL=/bin/zsh HOME="$H" "$BASHX" "$B/install.sh" --no-npm --plan "$SJ" 2>&1)"; rc=$?
 [ $rc -eq 0 ] && [ "$(printf '%s' "$OUT" | grep -o '바뀜 [0-9]*' | tail -1)" = "바뀜 0" ] && ok "a second install.sh --plan: 바뀜 0" || no "second --plan rc=$rc $(printf '%s' "$OUT" | grep -o '바뀜 [0-9]*' | tail -1)"
 for pat in '원본 지문 전후' '결과: 통과' '요약:' 'OPEN '; do
-  grep -q -- "$pat" "$T/live.out" && echo "SIGNAL ok «${pat}» appears in the run's output" || echo "SIGNAL missing «$pat» in the run's output (soft)"
+  grep -q -- "$pat" "$T/live.out" && echo "SIGNAL ok «${pat}» appears in the run's output" || echo "SIGNAL missing «${pat}» in the run's output (soft)"
 done
 finish

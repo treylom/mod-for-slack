@@ -2,7 +2,8 @@
 # open-terminal.sh — open a NEW terminal window that finishes the bot's setup where a human can type:
 #   ① paste the two Slack tokens (hidden input — «slackmod set-token <bot>») ② if Claude Code is not logged in: say «/login» and
 #   open claude so the person can ③ start the bot («slackmod start <bot>»). A tool call has no keyboard, so this step is a must.
-#   bash open-terminal.sh <bot> [--dry-run]
+#   bash open-terminal.sh <bot> [--dry-run] [--tokens-saved]
+#        --tokens-saved = the wizard already saved this bot's two tokens (slack-app-auto.py --keys): the window skips ①
 #   bash open-terminal.sh --continue <bot> [--dry-run]   (이어 하기) 그 봇 작업 폴더에서 Claude Code 를 열어 마법사가 «나중에»로
 #        미룬 칸(업무 묻기 · 작업 폴더 · 추천 …)을 이어 묻게 함 — Slack 연결 전에도 됨 · 봇이 아직 설치 전이면 홈 폴더에서 엶
 # The first output line is always:   OPEN <backend> <command>      (<command> = what the new window runs)
@@ -14,10 +15,12 @@ set -euo pipefail
 BOT=""
 DRY=0
 CONTINUE=0
+TOKENS_SAVED=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run) DRY=1; shift ;;
     --continue) CONTINUE=1; shift ;;
+    --tokens-saved) TOKENS_SAVED=1; shift ;;
     -h|--help) sed -n 2,10p "$0"; exit 0 ;;
     -*) echo "모르는 옵션: $1" >&2; exit 2 ;;
     *) [ -z "$BOT" ] && BOT="$1" || { echo "봇 이름은 하나만" >&2; exit 2; }; shift ;;
@@ -70,7 +73,7 @@ ROOT='$ROOT'
 PATH="\$ROOT/bin:\$PATH"; export PATH
 stay() { exec "\${SHELL:-sh}"; }
 echo "== \$BOT 마무리: 토큰 넣기 → 로그인 확인 → 봇 켜기 =="
-SLACKMOD_ROOT="\$ROOT" slackmod set-token "\$BOT" || { echo "토큰이 저장되지 않았습니다. 다시 하려면: slackmod set-token \$BOT"; stay; }
+$(if [ "$TOKENS_SAVED" = 1 ]; then echo 'echo "토큰은 설치 마법사가 이미 저장했습니다 — 건너뜀 (다시 넣기: slackmod set-token '"$BOT"')"'; else echo 'SLACKMOD_ROOT="$ROOT" slackmod set-token "$BOT" || { echo "토큰이 저장되지 않았습니다. 다시 하려면: slackmod set-token $BOT"; stay; }'; fi)
 if command -v claude >/dev/null 2>&1 && ! claude auth status >/dev/null 2>&1; then
   echo
   echo "Claude Code 에 로그인이 안 돼 있습니다. 지금 claude 를 엽니다 — 화면이 뜨면 /login 을 입력해 로그인한 뒤 /exit 로 나오세요."
@@ -141,6 +144,7 @@ if [ "$BACKEND" = none ]; then
 fi
 echo "  방법: $VIA"
 if [ "$CONTINUE" = 1 ]; then echo "  새 창이 할 일: $WD 에서 Claude Code 를 열고 설치 마법사의 미뤄 둔 칸을 이어서 묻기(/mods-setup:setup --resume)"
+elif [ "$TOKENS_SAVED" = 1 ]; then echo "  새 창이 할 일: ① (토큰은 이미 저장됨 — 건너뜀) ② 로그인 안 돼 있으면 /login 안내 ③ slackmod start $BOT"
 else echo "  새 창이 할 일: ① slackmod set-token $BOT (붙여 넣어도 화면에 안 보임) ② 로그인 안 돼 있으면 /login 안내 ③ slackmod start $BOT"; fi
 if [ "$DRY" = 1 ]; then echo "(미리 보기 — 창을 열지도, 파일을 쓰지도 않았습니다)"; exit 0; fi
 

@@ -97,6 +97,6 @@ OUT="$(env SHELL=/bin/zsh HOME="$H" "$BASHX" "$B/install.sh" --no-npm --plan "$S
 [ $rc -eq 0 ] && [ "$(printf '%s' "$OUT" | grep -o '바뀜 [0-9]*' | tail -1)" = "바뀜 0" ] && ok "a second install.sh --plan of the wizard's setup.json: 바뀜 0" || { no "second --plan rc=$rc $(printf '%s' "$OUT" | grep -o '바뀜 [0-9]*' | tail -1)"; printf '%s\n' "$OUT" | grep -v 그대로 | tail -5; }
 # soft signals from the model's own report (not hard: wording is the model's)
 for pat in '결과: 바뀜' 'OPEN ' '원본 지문 전후' '건너뜀'; do
-  grep -q -- "$pat" "$T/live.out" && echo "SIGNAL ok «${pat}» appears in the run's output" || echo "SIGNAL missing «$pat» in the run's output (soft)"
+  grep -q -- "$pat" "$T/live.out" && echo "SIGNAL ok «${pat}» appears in the run's output" || echo "SIGNAL missing «${pat}» in the run's output (soft)"
 done
 finish
