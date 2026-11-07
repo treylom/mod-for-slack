@@ -8,12 +8,14 @@
 #   claude plugin validate (setup/ and slackmod/app/mods-harness) · public/check-public-meta.sh = «.git 0 · 작성자 신원 0».
 # Output: <out>/<name>/ = a fresh git repo with exactly ONE commit (no history, no remote) made under a fixed neutral identity
 #   (never the builder's git config — if the folder is pushed later, that identity is what goes public) + <out>/<name>.tar.gz
-#   (committed files only: no .git, no builder user/group names) + .sha256.
+#   (committed files only: no .git, no builder user/group names) + .sha256 + <name>.release-notes.md (km lines added in this build, if any).
+# CHANGELOG.md (public/root/, optional): public/km-changelog.py adds a line per km release not yet listed (gh; failure = WARN).
+#   After a public release, commit <out>/<name>/CHANGELOG.md back over public/root/CHANGELOG.md (else the next notes repeat km lines).
 # --partial = allow a commit that has no setup/ or root install.sh yet (assembly smoke only; the tree is marked PARTIAL).
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 REPO="$(cd "$HERE/.." && pwd -P)"
-COMMIT="${1:-}"; [ -n "$COMMIT" ] && shift || { sed -n 2,12p "$0"; exit 2; }
+COMMIT="${1:-}"; [ -n "$COMMIT" ] && shift || { sed -n 2,14p "$0"; exit 2; }
 TC_REPO=""; TC_REF=HEAD; OUT="$PWD"; PARTIAL=0; EXPECT=()
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -70,6 +72,13 @@ else
   step "PARTIAL tree (no wizard yet)"
 fi
 cp "$W/src/public/root/README.md" "$W/src/public/root/SUPPORT.md" "$W/src/public/root/LICENSE" "$S/"
+# the change log (optional file): km releases not yet listed get one line each, on the staged copy — before the scan
+# below, so those lines are scanned like any root doc. km unreachable / gh missing = one WARN line, the build goes on.
+if [ -f "$W/src/public/root/CHANGELOG.md" ]; then
+  cp "$W/src/public/root/CHANGELOG.md" "$S/"
+  python3 -I "$W/src/public/km-changelog.py" "$S/CHANGELOG.md" --notes "$W/release-notes.md" 2>&1 | sed 's/^/[make-public] /' \
+    || step "km changelog: WARN helper failed — CHANGELOG as committed"
+fi
 # the bot operating rules (source moved here from ThisCode · ThisCodex · team-harness) — optional folder
 if [ -d "$W/src/public/root/rules" ]; then
   [ -z "$(find "$W/src/public/root/rules" -type l)" ] || fail "symlink in public/root/rules (a link target can carry a local path)"
@@ -138,4 +147,6 @@ rm -rf "${OUT:?}/$NAME"
 cp -R "$S" "$OUT/$NAME"
 cp "$W/$NAME.tar.gz" "$OUT/$NAME.tar.gz"
 ( cd "$OUT" && shasum -a 256 "$NAME.tar.gz" > "$NAME.tar.gz.sha256" )
+# the GitHub release body for this preview (lines only — this script never makes a release): the km lines added in this build
+[ -s "$W/release-notes.md" ] && cp "$W/release-notes.md" "$OUT/$NAME.release-notes.md"
 step "built $OUT/$NAME · commit $(git -C "$OUT/$NAME" rev-parse --short HEAD) · files $(git -C "$OUT/$NAME" ls-files | wc -l | tr -d ' ') · tar $(cut -c1-16 "$OUT/$NAME.tar.gz.sha256")"

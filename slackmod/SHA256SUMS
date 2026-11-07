@@ -1,4 +1,4 @@
-794c3d3bfa4745a5187f68de7780594cf1038396894cc6b2f07dbc39e14ac41f  ./MANIFEST.txt
+bd8e9369660ac4f1d7853d4af07aceb160b4c67ea37c8744a443114a8fb33674  ./MANIFEST.txt
 91d54b3b93a136b6e266238812bd98d0ca9f8a4e465af1f1b5583dd4629f3f5b  ./README.md
 77ee8f736d2f111289d221279baf442491ebf1642b4b3a13e9087878e67dc0ea  ./app/channel-server/.env.example
 f39ced4bda4411117d2721ef2e35e23e065e7da6b65c2bab234facae8908abc1  ./app/channel-server/BRIDGE-SOURCE.txt
@@ -47,7 +47,8 @@ dad2a63d113149d35c4a4265b75a82b2b28ef2392ee4dab16297de9d80edc5b1  ./app/mods-har
 352ef9f205db1e179da77ff2b811d09f0ca1863fbf39884319500207e5362d2e  ./app/mods-harness/install.sh
 39d83696b2f12e016e33480661d728c992ac9e74668279565c48ff365ab02a60  ./app/mods-harness/public/allowed-public-names.txt
 e1f531e637c049df8ad7ef8f41b56239a405dba559792cf2cc1257673cf09921  ./app/mods-harness/public/check-public-meta.sh
-213a623fc782f43cffe3460a045c5e60299221626fa673c7267c487756a069e1  ./app/mods-harness/public/make-public.sh
+ee825639e9ace3f34b7f27eed31677449e092cb82c5fd818866465f6d6047f0b  ./app/mods-harness/public/km-changelog.py
+128e9c69640dd67210672399e2b7ade7ae4516d4f385ebb0818e25726348831e  ./app/mods-harness/public/make-public.sh
 c6ce147ce1370841bd3743ce21b216aac85472d7ba8d38cc973f3e5325884113  ./app/mods-harness/public/mask-public-names.py
 5d59caccb96bdfc23ee30e8219db0e486fa02c5566692a79da9e545b79f8d327  ./app/mods-harness/public/root/LICENSE
 de3e9ee2f94290c65fd0bada479a59b6ec3a7d4fe1769f15bdd66e6129cd2702  ./app/mods-harness/public/root/docs/img/slack-app/01-create-new-app.png
