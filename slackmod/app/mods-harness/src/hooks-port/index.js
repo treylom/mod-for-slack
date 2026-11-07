@@ -9,7 +9,7 @@ let finalized = false;
 let registrationErrors = ['common-register-not-finalized'];
 let boundLaunch = '';
 let lifecycleRegistered = false;
-const PROMPT_WARNING = '[mods-harness] 프롬프트 정책 실행 오류: 입력은 수신했으며 도구 안전 검사는 계속 적용합니다.';
+const PROMPT_WARNING = '[mod-for-slack] 프롬프트 정책 실행 오류: 입력은 수신했으며 도구 안전 검사는 계속 적용합니다.';
 
 function supportedEvents() {
   return lifecycleRegistered ? ['PreToolUse','UserPromptSubmit','SessionStart','Stop'] : ['PreToolUse'];
@@ -88,7 +88,7 @@ async function journal($, operation, fields) {
 async function promptWarning($, e, events) {
   const turnId = e.turnId || 'prompt-' + crypto.randomUUID();
   try { await journal($,'prompt-warning',{turnId,events}); }
-  catch (err) { console.warn('[mods-harness] prompt-warning record fallback: ' + JSON.stringify({turnId,events,failureKind:'execution'})); }
+  catch (err) { console.warn('[mod-for-slack] prompt-warning record fallback: ' + JSON.stringify({turnId,events,failureKind:'execution'})); }
   return PROMPT_WARNING;
 }
 
@@ -122,7 +122,7 @@ export function registerPromptLifecycle(on, options) {
     if (!(await optedIn($))) return next(e);
     if (!e.agentId) {
       try { await journal($,'turn-start',{turnId:e.turnId}); }
-      catch (err) { console.warn('[mods-harness] completion receipt unavailable; missing receipt means held'); }
+      catch (err) { console.warn('[mod-for-slack] completion receipt unavailable; missing receipt means held'); }
     }
     return next(e);
   }).catch(($,e,next)=>next(e));
@@ -133,7 +133,7 @@ export function registerPromptLifecycle(on, options) {
       try { result = await callRunner($,'Stop',{turn_id:e.turnId,stop_hook_active:false,last_assistant_message:e.answer,messages:await $.session.messages()}); }
       catch (err) { result = {ok:false,deny:true,failureKind:'execution',reason:'completion-policy-unavailable'}; }
       try { await journal($,'turn-complete',{turnId:e.turnId,reason:e.reason,result,answerHash:await answerHash(e.answer)}); }
-      catch (err) { console.warn('[mods-harness] completion receipt unavailable; missing receipt means held'); }
+      catch (err) { console.warn('[mod-for-slack] completion receipt unavailable; missing receipt means held'); }
     }
     // This is a receipt only, never a block, replacement answer, or new turn.
     return next(e);

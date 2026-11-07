@@ -269,6 +269,16 @@ sync_tree() { # sync_tree <src> <dst> [more tree-fp args] — node_modules 는 �
 # K23: Claude Code writes its own type files into a plugin folder it loads (.claude-plugin/types/… · a root tsconfig.json)
 # — not shipped, so a re-run after any bot start must not call the folder changed and swap it under the running bot
 ENGINE_MADE=(--exclude-path .claude-plugin/types --exclude-path tsconfig.json)
+# The plugin's name (its plugin.json) before and after. A bot that is running when the folder is swapped keeps the name it
+# started with and only reloads the code (measured 11-08: its tools stayed mcp__<old name>__…), so a name change needs every
+# running bot turned off and on once — said under «다음:» at the end.
+plugin_name() { [ -f "$1/.claude-plugin/plugin.json" ] && "$PY_BIN" -I -c 'import json, sys; print(json.load(open(sys.argv[1])).get("name", ""))' "$1/.claude-plugin/plugin.json" 2>/dev/null || true; }
+OLD_PLUGIN="$(plugin_name "$ROOT/app/mods-harness")"; NEW_PLUGIN="$(plugin_name "$BUNDLE/app/mods-harness")"
+PLUGIN_RENAMED=0
+if [ -n "$OLD_PLUGIN" ] && [ -n "$NEW_PLUGIN" ] && [ "$OLD_PLUGIN" != "$NEW_PLUGIN" ]; then
+  PLUGIN_RENAMED=1
+  say "  플러그인 이름: $OLD_PLUGIN → $NEW_PLUGIN (켜져 있는 봇은 설치 뒤 한 번 껐다 켜야 새 이름으로 돌아갑니다)"
+fi
 sync_tree "$BUNDLE/app/mods-harness" "$ROOT/app/mods-harness" "${ENGINE_MADE[@]}"
 sync_tree "$BUNDLE/app/channel-server" "$ROOT/app/channel-server"
 CS="$ROOT/app/channel-server"
@@ -405,5 +415,8 @@ if [ "$DRY" = 0 ]; then
   [ "$WSL" = 1 ] && say "  3) slackmod check-windows     ← Windows 쪽에서 같은 Slack 앱이 켜져 있으면 메시지가 갈립니다(먼저 끄기)"
   if [ -n "${ALIASES[*]:-}" ]; then say "  4) 봇 하나씩: ${ALIASES[*]}  · 상태: slackmod status"
   else say "  (봇 0 — 빈 판으로 설치했습니다. 봇을 더하려면 설치 마법사를 다시 부르세요)"; fi
+  if [ "$PLUGIN_RENAMED" = 1 ]; then
+    say "  ※ 플러그인 이름이 $OLD_PLUGIN 에서 $NEW_PLUGIN 으로 바뀌었습니다. 켜져 있는 봇은 한 번 껐다 켜 주세요: slackmod stop all → slackmod start all"
+  fi
 fi
 exit 0

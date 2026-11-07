@@ -498,7 +498,7 @@ export function hideProject(hidden, project, at, by) {
 // One notice per parent whose 하위 the panel closed (not the panel's own session): the record is the registry row
 // (ended_reason closed-from-panel); this is so it does not wait for a report that will not come.
 export function panelParentNotice(project, ids) {
-  return `[mods-harness panel] the person closed your child session(s) ${ids.join(', ')} from the panel (project ${project}): ` +
+  return `[mod-for-slack panel] the person closed your child session(s) ${ids.join(', ')} from the panel (project ${project}): ` +
     'registry ended (closed-from-panel) and window closed — no report will come from them; their threads come back to you.'
 }
 
@@ -1113,7 +1113,7 @@ export function boardHeader(p) {
     `# 하위 세션 게시판 — ${p.project}`,
     '',
     `- 부모: ${p.parentId} · project: ${p.project} · 회의방: ${p.room} · 시작: ${p.now}`,
-    '- 이 노트는 mods-harness 세션 갈래가 한 줄씩 덧붙입니다. 손으로 고치지 마세요.',
+    '- 이 노트는 mod-for-slack 세션 갈래가 한 줄씩 덧붙입니다. 손으로 고치지 마세요.',
     '- 꼴: `[HH:MM:SS KST] <id>(<type>) | <결정·질문 q-N → 받는 id·답 q-N·막힘·끝> | <1줄>`',
     '',
   ].join('\n')
@@ -1219,7 +1219,7 @@ export const RESEARCH_FIRST_LINE = '첫 도구 = searchflow(/ouroboros:searchflo
 
 export function contractText(p) {
   return [
-    '# Child session contract (mods-harness · session lane)',
+    '# Child session contract (mod-for-slack · session lane)',
     ...(typeof p.type === 'string' && p.type.trim().toLowerCase() === 'research' ? ['', RESEARCH_FIRST_LINE] : []),
     '',
     `You are a child session of parent session "${p.parentName}" (registry id ${p.parentId}).`,

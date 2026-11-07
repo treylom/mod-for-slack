@@ -9,7 +9,7 @@ import { TOOL_NAME, toolSettings, checkInput, resultText, failText } from './lib
 let optInAnchor
 async function optedIn($) { if (optInAnchor === undefined) { const bot = await $.env.get('MODS_HARNESS_BOT'); const expected = await $.env.get('MODS_HARNESS_SESSION_ID'); optInAnchor = Boolean(bot) && Boolean(expected) && expected === await $.session.id() } return optInAnchor }
 
-const FULL_NAME = 'mcp__mods-harness__progress_line'
+const FULL_NAME = 'mcp__mod-for-slack__progress_line'
 
 async function loadToolSettings($) {
   const home = (await $.env.get('HOME')) || ''
@@ -64,7 +64,7 @@ export function register(on, options) {
         isDeferred: false,
       })
     } catch (err) {
-      try { $.ui.status('mods-harness tools: ' + String((err && err.message) || err).slice(0, 100)) } catch (e2) { /* ignore */ }
+      try { $.ui.status('mod-for-slack tools: ' + String((err && err.message) || err).slice(0, 100)) } catch (e2) { /* ignore */ }
     }
     return next(e)
   })

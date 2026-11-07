@@ -114,7 +114,7 @@ export function ruleLine(cols) {
 // bold, and the row's rest painted the same (the line's `fill`, index.js paneRow). Narrow: «▣ <이름> 현황판» → «▣ <이름>» →
 // «▣ 현황판» → «▣» — the first that fits, never cut.
 function titleSegs(name, w) {
-  const n = name || 'mods-harness'
+  const n = name || 'mod-for-slack'
   const tries = ['▣ ' + n + ' 현황판', '▣ ' + n, '▣ 현황판', '▣']
   const t = tries.find((x) => strWidth(x) <= w) || '▣'
   return [{ text: '▣', bar: 'title', bold: true }, ...(t.length > 1 ? [{ text: t.slice(1), bar: 'title', bold: true }] : [])]
@@ -151,7 +151,7 @@ function aboutLines(name, about, w) {
       rows.push({ key: 'about-' + key + (n ? ':' + n : ''), segs: [...(pad ? [{ text: ' '.repeat(pad) }] : []), ...segs].map((s) => ({ ...s, press: ABOUT_PRESS })) }))
   }
   layer('mod', MOD_LABEL, t.ccmod)
-  layer('system', name || 'mods-harness', t.system)
+  layer('system', name || 'mod-for-slack', t.system)
   return rows
 }
 

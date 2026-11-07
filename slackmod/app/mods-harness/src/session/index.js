@@ -1024,7 +1024,7 @@ async function endShownCommit($, info) {
 // K3: a message that fell to the parent although a child is on its thread → one dispatch.jsonl line (kind dispatch-failed,
 // no text) · the running count for the pane ($.state mh.dispatch: failed · at · reason — read by the ui lane) · the line
 // the parent reads with the message (returned). Never throws: the prompt itself must go on.
-const DISPATCH_REF = { plugin: 'mods-harness', key: 'mh.dispatch' }
+const DISPATCH_REF = { plugin: 'mod-for-slack', key: 'mh.dispatch' }
 let dispatchFails = { failed: 0, at: 0, reason: '' }
 async function dispatchFailed($, f, head) {
   const line = dispatchFailLine(f)
@@ -1246,9 +1246,9 @@ function isMine(e) {
   return Boolean(e && e.tool && Object.values(registered).includes(e.tool))
 }
 
-const USAGE_REF = { plugin: 'mods-harness', key: 'mh.usage' }      // written by the ui lane (G7 running totals)
-const REGID_REF = { plugin: 'mods-harness', key: 'mh.registryId' }  // read by the ui lane to join live state
-const PANEL_ORDER = { plugin: 'mods-harness', key: 'mh.panelOrder' } // 10-20 패널 ✕: written by the ui lane's 닫기 press, taken here
+const USAGE_REF = { plugin: 'mod-for-slack', key: 'mh.usage' }      // written by the ui lane (G7 running totals)
+const REGID_REF = { plugin: 'mod-for-slack', key: 'mh.registryId' }  // read by the ui lane to join live state
+const PANEL_ORDER = { plugin: 'mod-for-slack', key: 'mh.panelOrder' } // 10-20 패널 ✕: written by the ui lane's 닫기 press, taken here
 
 export function register(on, options) {
   optInAnchor = undefined

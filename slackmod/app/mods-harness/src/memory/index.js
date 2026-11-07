@@ -26,7 +26,7 @@ async function topLevel($) {                 // true = the bot's own session (de
   if (depthAnchor === undefined) {
     const d = Number((await $.env.get('MH_SESSION_DEPTH')) || 0)
     depthAnchor = !(d >= 1)
-    if (!depthAnchor) { try { $.ui.log('[mods-harness] 기억: 하위 세션(깊이 ' + d + ')이라 회상은 꺼진 채로 두고, 기억 폴더 직접 쓰기만 막습니다') } catch (err) { /* nothing */ } }
+    if (!depthAnchor) { try { $.ui.log('[mod-for-slack] 기억: 하위 세션(깊이 ' + d + ')이라 회상은 꺼진 채로 두고, 기억 폴더 직접 쓰기만 막습니다') } catch (err) { /* nothing */ } }
   }
   return depthAnchor
 }
@@ -36,7 +36,7 @@ async function pinOn($) {
     let here = ''
     try { here = String($.plugin.root || '').replace(/\/+$/, '') } catch (err) { here = '' }
     pinAnchor = !want || want === here
-    if (!pinAnchor) { try { $.ui.log('[mods-harness] 기억: 이 사본(' + here + ')은 런처가 고정한 사본이 아니라 꺼진 채로 둡니다') } catch (err) { /* nothing */ } }
+    if (!pinAnchor) { try { $.ui.log('[mod-for-slack] 기억: 이 사본(' + here + ')은 런처가 고정한 사본이 아니라 꺼진 채로 둡니다') } catch (err) { /* nothing */ } }
   }
   return pinAnchor
 }
@@ -56,7 +56,7 @@ async function childGuardOn($) {
 import { isKumihoKey } from './lib/describe.js'
 import { kumihoSettings, termList, KUMIHO_WRITE_TOOL, KUMIHO_UPFRONT, kumihoToolOf, reflectArgs, reflectVerdict, refusal, otherWriteLine, CHILD_KUMIHO_LINE, SUBAGENT_KUMIHO_LINE, KUMIHO_OFF_LINE, sessionRequired, kstDay, kumihoLine, kumihoMoment, issuedSessionIds, sessionIdVerdict, SESSION_ID_FIX } from './lib/kumiho.js'
 
-const PLUGIN = 'mods-harness'
+const PLUGIN = 'mod-for-slack'
 const CACHE_MS = 30000
 let cached = null
 let cachedAt = -1
@@ -131,7 +131,7 @@ async function callCapped($, server, tool, args, ms) {
 
 // ◎ 기억 button (봇 ui lane, read-only there): the last recall, without the error text, in $.state mh.recall.
 // The key belongs to the mods-harness plugin; a renamed test/pilot copy cannot write it (caught — nothing else changes).
-const RECALL_REF = { plugin: 'mods-harness', key: 'mh.recall' }
+const RECALL_REF = { plugin: 'mod-for-slack', key: 'mh.recall' }
 async function publishRecall($) {
   try {
     const { at, state, conversations, facts, chars, ms, lines } = last
@@ -186,9 +186,9 @@ async function projectBlock($, e, s, maxChars) {
   return block
 }
 
-function skipLog($, why) { try { $.ui.log('[mods-harness] 기억 회상 건너뜀: ' + why) } catch (err) { /* nothing */ } }
+function skipLog($, why) { try { $.ui.log('[mod-for-slack] 기억 회상 건너뜀: ' + why) } catch (err) { /* nothing */ } }
 // One debug-log line per decision (nothing on screen, nothing to the model) — what the isolated run measures.
-function debugLog($, line) { try { $.ui.log('[mods-harness] ' + line, { to: 'debug' }) } catch (err) { /* nothing */ } }
+function debugLog($, line) { try { $.ui.log('[mod-for-slack] ' + line, { to: 'debug' }) } catch (err) { /* nothing */ } }
 
 // New-task moments (주인): the delivery keys this session has seen, and «no prompt yet since start or /clear».
 // Reset by register() (process start · resume) and by session.end reason clear (the conversation is gone, the process
@@ -435,7 +435,7 @@ export function register(on, options) {
       if (next.origin.plugin !== self) return verdict
       const s = await loadSettings($)
       if (!s.recall.enabled || !s.recall.selfAllow || !recallToolNames(s.recall.servers).includes(e.tool)) return verdict
-      return { decision: 'allow', reason: 'mods-harness memory recall (allow list: recall on the configured banks)' }
+      return { decision: 'allow', reason: 'mod-for-slack memory recall (allow list: recall on the configured banks)' }
     } catch (err) { return verdict } // a failure here keeps the engine verdict (never widens)
   }).catch(async ($, e, next) => next(e))
 

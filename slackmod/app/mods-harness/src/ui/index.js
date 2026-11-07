@@ -51,15 +51,15 @@ const LAUNCHCTL_MS = 60 * 1000
 const SLOW_MS = 5 * 60 * 1000
 const PLIST_MAX_AGE_MS = 10 * 60 * 1000
 const TEAM_MS = 30 * 1000
-const REGID_REF = { plugin: 'mods-harness', key: 'mh.registryId' }
+const REGID_REF = { plugin: 'mod-for-slack', key: 'mh.registryId' }
 // G7 running totals (lib/usage.js) — read by the session lane at every turn.complete into the registry row.
-const USAGE_REF = { plugin: 'mods-harness', key: 'mh.usage' }
+const USAGE_REF = { plugin: 'mod-for-slack', key: 'mh.usage' }
 // 10-20 패널 ✕: a confirmed 닫기 press writes its order here, as the press goes through; the session lane takes it right
 // after (session/index.js on ui.press · core.js panelOrderCheck) — this lane writes no registry row and closes no window.
-const PANEL_ORDER_REF = { plugin: 'mods-harness', key: 'mh.panelOrder' }
+const PANEL_ORDER_REF = { plugin: 'mod-for-slack', key: 'mh.panelOrder' }
 // K3 (주인 10-21 21:43 · 봇 19:39 권고): the session lane's count of thread messages that fell to this session although
 // a child was on that thread (session/index.js dispatchFailed) — read only, every 5 s with the registry, drawn in the head.
-const DISPATCH_REF = { plugin: 'mods-harness', key: 'mh.dispatch' }
+const DISPATCH_REF = { plugin: 'mod-for-slack', key: 'mh.dispatch' }
 
 // Module state = caches only. A hot reload empties it; session.start fills it again within seconds
 // (the G7 totals come back from $.state, see usageReady).
@@ -1744,7 +1744,7 @@ async function startUi($) {
   try {
     await $.command.register({
       name: 'mh',
-      description: 'mods-harness 칸 열기: 세션 나무 + 프로젝트별 봇 현황 + TeamClaude + 이 봇 예약. «/mh 예약» = 다른 봇 예약도 · «/mh 프로젝트» = 프로젝트 상세 · «/mh <봇>» = 그 봇 예약 펼치기 · «/mh 모양 <이름>» = 화면 모양 바꾸기 · «/mh off» = 닫기',
+      description: 'mod-for-slack 칸 열기: 세션 나무 + 프로젝트별 봇 현황 + TeamClaude + 이 봇 예약. «/mh 예약» = 다른 봇 예약도 · «/mh 프로젝트» = 프로젝트 상세 · «/mh <봇>» = 그 봇 예약 펼치기 · «/mh 모양 <이름>» = 화면 모양 바꾸기 · «/mh off» = 닫기',
       argumentHint: '[예약 | 프로젝트 | 봇 | 모양 <이름> | off]',
       immediate: true,
     })
@@ -1964,7 +1964,7 @@ export function register(on, options) {
     }
     await mhRun($, arg, e.presentation ? e.presentation.isFullscreen : undefined, true)
     return {}
-  }).catch(() => ({ text: 'mods-harness ui: /mh failed' }))
+  }).catch(() => ({ text: 'mod-for-slack ui: /mh failed' }))
 
   // 10-20 모델 칸 ① (봇 1번): the engine's own /model and /effort run as they always do — this hook only
   // reads the session's model before and after (personSaid) and answers with the engine's own result object as it came

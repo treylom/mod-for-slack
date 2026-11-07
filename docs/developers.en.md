@@ -85,7 +85,7 @@ The bundle is tested against one Claude Code version (`slackmod/app/mods-harness
 
 ## About the name
 
-The product name is mod-for-slack. So that existing installs keep working, the command `slackmod` · the install folder `~/.slackmod` · the repository folder `slackmod/` · the shell settings block marker `# >>> slackmod >>>` · the `SLACKMOD_*` environment variables · the plugin name `mods-harness` keep their earlier names. Claude Code puts the plugin name in front of a plugin's status line and notifications, so notification lines on screen start with «mods-harness:».
+The product name is mod-for-slack. So that existing installs keep working, the command `slackmod` · the install folder `~/.slackmod` · the repository folder `slackmod/` · the shell settings block marker `# >>> slackmod >>>` · the `SLACKMOD_*` environment variables keep their earlier names. The plugin name is `mod-for-slack`: Claude Code puts it in front of the plugin's status line and notifications (notification lines on screen start with «mod-for-slack:»), and the bot's tools are named `mcp__mod-for-slack__…`. The name is written only into the plugin copy's settings when the bundle is built, so the plugin folder `app/mods-harness` · the `MODS_HARNESS_*` environment variables · the record folder `~/.mods-harness` keep their earlier names. After updating to a version whose plugin name changed, turn running bots off and on once so they run under the new name (`slackmod stop all` → `slackmod start all`).
 
 ## Rules and related repositories
 

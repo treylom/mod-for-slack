@@ -2,7 +2,7 @@
 // Shared file: each lane edits ONLY its own section below and runs `claude plugin validate` before committing.
 declare module 'claude-code' {
   interface PluginState {
-    'mods-harness': {
+    'mod-for-slack': {
       // ── session lane (src/session/) ──
       // This session's registry id when it differs from $.session.id() (child launched with a preset id).
       'mh.registryId': string | null

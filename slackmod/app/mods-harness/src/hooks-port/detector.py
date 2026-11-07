@@ -22,7 +22,7 @@ def main():
     except Exception:event={}
     result=check(a.config,a.session,a.bot,event)
     if result['allow']:return 0
-    reason='[mods-harness ALARM] '+result['reason']
+    reason='[mod-for-slack ALARM] '+result['reason']
     print(reason,file=sys.stderr)
     print(json.dumps({'hookSpecificOutput':{'hookEventName':'PreToolUse','permissionDecision':'deny','permissionDecisionReason':reason}}))
     return 0

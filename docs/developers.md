@@ -85,7 +85,7 @@ MUTATE=1 bash setup/tests/run-all.sh # 검사를 하나씩 꺼 보며 시험이 
 
 ## 이름에 대해
 
-제품 이름은 mod-for-slack 입니다. 기존 설치가 그대로 돌도록 명령 `slackmod` · 설치 폴더 `~/.slackmod` · 저장소 안 폴더 `slackmod/` · 셸 설정 칸 표식 `# >>> slackmod >>>` · 환경 변수 `SLACKMOD_*` · 플러그인 이름 `mods-harness` 는 옛 이름 그대로입니다. Claude Code 는 플러그인의 상태 줄과 알림 앞에 플러그인 이름을 붙이므로, 화면의 알림 줄은 «mods-harness:» 로 시작합니다.
+제품 이름은 mod-for-slack 입니다. 기존 설치가 그대로 돌도록 명령 `slackmod` · 설치 폴더 `~/.slackmod` · 저장소 안 폴더 `slackmod/` · 셸 설정 칸 표식 `# >>> slackmod >>>` · 환경 변수 `SLACKMOD_*` 는 옛 이름 그대로입니다. 플러그인 이름은 `mod-for-slack` 입니다 — Claude Code 는 플러그인의 상태 줄과 알림 앞에 이 이름을 붙이고(화면의 알림 줄은 «mod-for-slack:» 로 시작), 봇이 받는 도구 이름도 `mcp__mod-for-slack__…` 로 시작합니다. 이 이름은 배포 묶음을 만들 때 플러그인 사본의 설정에만 써 넣습니다. 그래서 플러그인 폴더 `app/mods-harness` · 환경 변수 `MODS_HARNESS_*` · 기록 폴더 `~/.mods-harness` 는 옛 이름 그대로입니다. 플러그인 이름이 바뀐 판으로 올리면 켜져 있던 봇은 한 번 껐다 켜야 새 이름으로 돌아갑니다(`slackmod stop all` → `slackmod start all`).
 
 ## 규칙과 관련 저장소
 

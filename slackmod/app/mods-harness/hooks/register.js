@@ -15,7 +15,7 @@ import { register as registerOwner } from '../src/owner/index.js'
 
 function report(name, err, errors) {
   const msg = `lane ${name} failed to register: ${err && err.message}`
-  console.error(`[mods-harness] ${msg}`)
+  console.error(`[mod-for-slack] ${msg}`)
   errors.push(msg)
 }
 
@@ -37,5 +37,5 @@ export function register(on, options) {
   try { registerMemory(on, options) } catch (err) { report('memory', err, errors) }
   try { registerUi(on, options) } catch (err) { report('ui', err, errors) }
   try { registerTools(on, options) } catch (err) { report('tools', err, errors) }
-  try { finalizeRegistration({ errors }) } catch (err) { console.error(`[mods-harness] finalize failed: ${err && err.message}`) }
+  try { finalizeRegistration({ errors }) } catch (err) { console.error(`[mod-for-slack] finalize failed: ${err && err.message}`) }
 }

@@ -18,7 +18,7 @@ import { ruleLine, ABOUT_PRESS } from './legend.js'
 import { pill, pillSegments } from './skin.js'
 import { MODEL_PRESS, MODEL_CHOICES, EFFORTS, pickPress, cellOf } from './modelpick.js'
 
-export const DEFAULT_SYSTEM_NAME = 'mods-harness'
+export const DEFAULT_SYSTEM_NAME = 'mod-for-slack'
 export const BAND_ROWS = 5
 
 // 봇 10-17: config `ui.system_name`, 비면 «mods-harness» — 다른 이름을 지어 넣지 않음.

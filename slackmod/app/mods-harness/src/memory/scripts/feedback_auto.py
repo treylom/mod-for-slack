@@ -237,7 +237,7 @@ channel: {channel}
 thread_ts: "{thread_ts or ''}"
 ledger: [{led_fm}]
 room: [{room_fm}]
-generated_by: mods-harness memory lane — feedback auto (format B · model calls 0)
+generated_by: mod-for-slack memory lane — feedback auto (format B · model calls 0)
 ---
 # 자동 피드백 기록 — {bot} · {dt.strftime('%Y-%m-%d %H:%M:%S')}
 

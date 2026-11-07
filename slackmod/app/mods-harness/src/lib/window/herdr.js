@@ -52,7 +52,7 @@ export function shLine(argv) {
 // the 0600 start file: removes itself, then becomes the child's command (exec — the pane ends with it)
 export function startFileText(argv) {
   const line = shLine(argv)
-  return line === null ? null : `# mods-harness child start (herdr) — removes itself, then runs the child\nrm -f -- "$0"\nexec ${line}\n`
+  return line === null ? null : `# mod-for-slack child start (herdr) — removes itself, then runs the child\nrm -f -- "$0"\nexec ${line}\n`
 }
 // the line typed into the new tab
 export function typedLine(startPath) {
