@@ -1,4 +1,4 @@
-0d3878e2bcc0aeb896e8e01747e0af00a656a1e4a68c63bd04fadaee73d68b7c  ./MANIFEST.txt
+6e95b7a3e2bfd71eec5aecb8fdd9e6d81855a7bdf5d91442c058cfc78da6234c  ./MANIFEST.txt
 ce25bd371bdeba5a25fc90a9ee8d503b15a167d79391951bc2a6deb9e65427d1  ./README.md
 77ee8f736d2f111289d221279baf442491ebf1642b4b3a13e9087878e67dc0ea  ./app/channel-server/.env.example
 f39ced4bda4411117d2721ef2e35e23e065e7da6b65c2bab234facae8908abc1  ./app/channel-server/BRIDGE-SOURCE.txt
@@ -158,7 +158,7 @@ f8146b9b169862d3f8f80bf7bb65a5d1c2f2b2bb7cddd6a1e0f6f3ce0dc90f2f  ./app/mods-har
 802e1cc101a386114f7ba02f8a4b6717de91bff34034951cb94ba09ff6ba8bf1  ./app/mods-harness/src/ui/lib/tree.js
 08f61b890805628940c17285e6ad35a821bd019677e88ba2eb101bfd15813fc9  ./app/mods-harness/src/ui/lib/usage.js
 bfdafc4311945489343441e2229f0f6de04ab749d6188ca333d996b21c74e5d8  ./app/mods-harness/tools/web-board/handler.mjs
-06d17bd6f4d5571ff88cea100fb31c2171cf8fbafa77d55a6dd026fe2a79e68a  ./app/mods-harness/tools/web-board/jobs.html
+5fc218374e7d57cd0564158804b5b0dfc2c2203191780c6aedad6245b31534bc  ./app/mods-harness/tools/web-board/jobs.html
 625a522622f88ba23a4ed19772ec601609ad198a9a2e133d39ac09cb827e9211  ./app/mods-harness/tools/web-board/jobs.mjs
 865c8c7e95ca1dfb8ed33521b14559ff3ccbfb7a396b8300ceae5aac070d2c86  ./app/mods-harness/tools/web-board/lib.mjs
 0f13da102d1179a47bfdae3e27240ffbd5870096a175e71a4a01e2eaf39e90ec  ./app/mods-harness/tools/web-board/page.html

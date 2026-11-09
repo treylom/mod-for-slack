@@ -1,7 +1,7 @@
-mod-for-slack bundle slackmod-20261109-faf686f-be5d6bc9
-harness commit: faf686f95b9e7343753d81dcc20bc15f9e7887e3
+mod-for-slack bundle slackmod-20261109-0ee7129-be5d6bc9
+harness commit: 0ee71293f798921082178d75d14704d55b00db25
 bridge commit: e5d6bc94d8bdd573b940e412f4e12d85e578034e
-built: 2026-11-09 23:17:25 +0900
+built: 2026-11-09 23:54:37 +0900
 claude code pin: 2.1.296
 scrub: {"binary_skipped": 14, "changed": 72, "counts": {"BOT": 438, "CHILD": 34, "HOST": 6, "LEDGER": 7, "MSGNO": 2, "OWNER": 177, "PATH": 6, "SLACKID": 13, "SLACKIDLINE": 2, "SPEC": 121, "TEAM": 8, "TERM": 10}, "files": 165, "mode": "write"}
 scanners: port/scan-traces.sh
