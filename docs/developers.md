@@ -25,11 +25,11 @@ mods API 의 전체 타입은 저장소에 없습니다. Claude Code 가 `--plug
 flowchart TB
   subgraph NO["CCMod 없을 때 — command 훅"]
     direction LR
-    A1["PreToolUse 이벤트<br/>Claude Code 프로세스"] -- "새 프로세스 띄움" --> P1["훅 명령 실행<br/>바깥 프로세스"] --> W1["종료 코드·stdout 으로 답하고 끝남<br/>바깥 프로세스"] -- "결과 읽음" --> R1["판정 반영<br/>Claude Code 프로세스"]
+    A1["PreToolUse<br/>이벤트<br/>Claude Code<br/>프로세스"] -- "새 프로세스 띄움" --> P1["훅 명령 실행<br/>바깥 프로세스"] --> W1["종료 코드·stdout 으로 답하고 끝남<br/>바깥 프로세스"] -- "결과 읽음" --> R1["판정 반영<br/>Claude Code<br/>프로세스"]
   end
   subgraph YES["CCMod 있을 때 — mod 훅"]
     direction LR
-    A2["tool.call 이벤트<br/>Claude Code 프로세스"] -- "함수 호출" --> C2["mod 훅 함수<br/>next · {deny} · {result}"]
+    A2["tool.call<br/>이벤트<br/>Claude Code<br/>프로세스"] -- "함수 호출" --> C2["mod 훅 함수<br/>next · {deny} · {result}"]
   end
   NO ~~~ YES
   classDef out stroke-dasharray:5 5
@@ -48,7 +48,7 @@ mod 는 Claude Code 가 자기 프로세스 안에서 부르는 플러그인 함
 ```mermaid
 flowchart LR
   subgraph CC["Claude Code 프로세스"]
-    C["모델의 도구 호출"] --> MH{"mod tool.call 훅<br/>hooks-port · 모든 도구"}
+    C["모델의 도구 호출"] --> MH{"mod tool.call 훅<br/>hooks-port<br/>모든 도구"}
     S["$.session.messages()<br/>훅끼리 공유 변수"] -.-> MH
     MH -- "next(e) · 바꾼 e" --> PT["설정 PreToolUse<br/>셸 명령"]
     MH -- "{result}" --> ANS["도구 대신 답"]
@@ -70,9 +70,9 @@ flowchart LR
 flowchart LR
   subgraph CC["Claude Code 프로세스"]
     SS["session.start"] --> REG["$.tool.register<br/>isDeferred: false"]
-    REG --> NAME["모델에 보이는 이름<br/>mcp__mod-for-slack__spawn_child 등"]
-    NAME --> TH["같은 이름의 tool.call 훅이 처리"]
-    RP["mcp__slack-channel__reply 호출"] --> MEM["owner 의 tool.call<br/>주인 태그 붙여 next"]
+    REG --> NAME["모델에<br/>보이는 이름<br/>mcp__<br/>mod-for-slack__<br/>spawn_child 등"]
+    NAME --> TH["같은 이름의<br/>tool.call 훅이<br/>처리"]
+    RP["mcp__<br/>slack-channel__<br/>reply 호출"] --> MEM["owner 의 tool.call<br/>주인 태그 붙여 next"]
   end
   subgraph EXT["바깥 프로세스"]
     HELP["도우미 스크립트"]

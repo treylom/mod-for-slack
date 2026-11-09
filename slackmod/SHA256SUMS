@@ -1,4 +1,4 @@
-b21421ed6b99159ffc9179c5cd3ee78e7a1b57ff974a01932a96e678777cb0c0  ./MANIFEST.txt
+0d3878e2bcc0aeb896e8e01747e0af00a656a1e4a68c63bd04fadaee73d68b7c  ./MANIFEST.txt
 ce25bd371bdeba5a25fc90a9ee8d503b15a167d79391951bc2a6deb9e65427d1  ./README.md
 77ee8f736d2f111289d221279baf442491ebf1642b4b3a13e9087878e67dc0ea  ./app/channel-server/.env.example
 f39ced4bda4411117d2721ef2e35e23e065e7da6b65c2bab234facae8908abc1  ./app/channel-server/BRIDGE-SOURCE.txt

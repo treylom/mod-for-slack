@@ -12,11 +12,11 @@ mod-for-slack 은 Claude Code 에 CCMod(Claude Code mod)를 붙여서 돌아갑�
 flowchart TB
   subgraph NO["CCMod 없을 때 — 먼 길"]
     direction LR
-    A1["AI 가 도구를 쓰려 함<br/>Claude Code 안"] -- "밖으로 나감" --> P1["프로그램을 켬<br/>Claude Code 밖"] --> W1["답을 쓰고 다시 끔<br/>Claude Code 밖"] -- "안으로 돌아옴" --> R1["답을 받아 다음으로<br/>Claude Code 안"]
+    A1["AI 가 도구를<br/>쓰려 함<br/>Claude Code 안"] -- "밖으로 나감" --> P1["프로그램을 켬<br/>Claude Code 밖"] --> W1["답을 쓰고 다시 끔<br/>Claude Code 밖"] -- "안으로 돌아옴" --> R1["답을 받아<br/>다음으로<br/>Claude Code 안"]
   end
   subgraph YES["CCMod 있을 때 — 짧은 길"]
     direction LR
-    A2["AI 가 도구를 쓰려 함<br/>Claude Code 안"] -- "안에서" --> C2["CCMod 가 판정<br/>안에 늘 켜져 있음"]
+    A2["AI 가 도구를<br/>쓰려 함<br/>Claude Code 안"] -- "안에서" --> C2["CCMod 가 판정<br/>안에 늘 켜져 있음"]
   end
   NO ~~~ YES
   classDef out stroke-dasharray:5 5
@@ -30,14 +30,14 @@ CCMod 는 Claude Code 안에 늘 켜져 있는 부품입니다. 위아래 두 �
 ```mermaid
 flowchart LR
   subgraph IN["Claude Code 안"]
-    A["AI 가 도구를 쓰려 함"] --> G{"CCMod 관문<br/>대화를 넘겨 판정"}
+    A["AI 가 도구를<br/>쓰려 함"] --> G{"CCMod 관문<br/>대화를 넘겨 판정"}
     G -- "통과" --> H["예전 훅<br/>설정 훅"] --> T["도구 실행"]
     G -- "막기 · 대신 답" --> X["도구 안 돎"]
-    MT["CCMod 도구<br/>새 창 열기 · 보고하기"]
+    MT["CCMod 도구<br/>새 창 열기<br/>보고하기"]
   end
   subgraph OUT["Claude Code 밖"]
-    P["규칙 검사 프로그램<br/>공개판 = 모두 통과 자리"]
-    M["MCP 서버<br/>따로 도는 프로그램"]
+    P["규칙 검사<br/>프로그램<br/>공개판 =<br/>모두 통과 자리"]
+    M["MCP 서버<br/>따로 도는<br/>프로그램"]
   end
   G -. "도구를 쓸 때마다 부름" .-> P
   T -. "MCP 도구면 그 서버가 처리" .-> M

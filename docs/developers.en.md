@@ -70,9 +70,9 @@ flowchart LR
 flowchart LR
   subgraph CC["Claude Code process"]
     SS["session.start"] --> REG["$.tool.register<br/>isDeferred: false"]
-    REG --> NAME["name the model sees<br/>mcp__mod-for-slack__spawn_child and others"]
+    REG --> NAME["name the model sees<br/>mcp__<br/>mod-for-slack__<br/>spawn_child and others"]
     NAME --> TH["tool.call hook of that name handles it"]
-    RP["mcp__slack-channel__reply call"] --> MEM["owner's tool.call<br/>adds the owner tag, then next"]
+    RP["mcp__<br/>slack-channel__<br/>reply call"] --> MEM["owner's tool.call<br/>adds the owner tag, then next"]
   end
   subgraph EXT["Separate processes"]
     HELP["helper script"]
