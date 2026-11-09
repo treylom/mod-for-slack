@@ -18,6 +18,7 @@ Slack 채널에 메시지를 보내면 봇이 받고, 여러 단계가 걸리는
 | `app/channel-server` | Slack 다리(Slack ↔ Claude Code) |
 | `hooks/pass.sh` | 하위 세션 플러그인(`app/mods-harness`)이 도구 호출마다 거치는 관문 자리(지금은 모두 통과) |
 | `lib/route_judge.py` | 하위 라우터의 예시 판정기(선택 · 아래 «하위 라우터») |
+| `lib/rooms.py` | 프로젝트 방 만들기(`slackmod room`) · 웹 현황판 설정·열쇠 만들기(`slackmod board`) — 아래 «웹 현황판» |
 | `MANIFEST.txt` · `SHA256SUMS` | 묶음 출처 · 파일 지문 |
 
 ## 순서 (WSL Ubuntu 터미널)
@@ -54,6 +55,13 @@ Slack 채널에 메시지를 보내면 봇이 받고, 여러 단계가 걸리는
 - 버림 알림(기본 켬): 허용 안 된 봇이 부르거나, 허용된 봇이 멘션 없이 쓰면 그 스레드에 «전달 안 됨» 알림이 뜹니다. 끄려면 설정 `slack.drop_notice` · `slack.drop_notice_no_mention` 을 false 로 바꾼 뒤 install.sh 다시.
 - 멘션 없는 봇 글 알림(`slack.drop_notice_no_mention`): 한 채널에 봇이 2개면 둘 다 켜 둬도 됩니다(알림 = 채널당 30분에 1통 이하). 봇이 3개 이상이면 받는 쪽 1~2개만 켜고 나머지는 false — 다 켜면 상대 봇의 평소 답에도 알림이 겹쳐 뜹니다.
 - 위 알림은 `message.channels` 구독이 있어야 뜹니다(없으면 멘션 없는 글을 Slack 이 아예 안 보내서 알림도 못 뜸).
+
+## 웹 현황판 · 프로젝트 방 (선택)
+
+- `slackmod board start` → 현황판 서버(`app/mods-harness/tools/web-board/server.mjs`)를 tmux 세션 `slackmod-board` 에서 켭니다(tmux 가 없으면 백그라운드). 설정·열쇠·봇 명부 = `~/.slackmod/web-board/`(열쇠 `web.key` = 처음 켤 때 이 컴퓨터에서 만듦 · 0600 · 다시 켜도 그대로). 주소 = `127.0.0.1` 만.
+- 처음 열 주소 = 터미널에서 `slackmod board url`(열쇠 포함 · 채팅·Slack 에 붙이지 않기) · 끄기 `slackmod board stop` · 상태 `slackmod board status` · 서버 기록 `~/.slackmod/web-board/server.log`.
+- `slackmod room new <이름> --goal "목표 한 줄" [--step "다음 일"]… [--thread <Slack 스레드 링크>]` → `~/.slackmod/rooms/<날짜>-<이름>/` 네 파일. `01-spec.md` 의 «의존 그래프»는 목표·다음 일로 처음부터 채워집니다(빈 자리표 없음). 현황판은 최근 31일 방 40개까지 읽습니다.
+- 현황판이 «켜지지 않았습니다» → `server.log` 마지막 줄: «거절: 열쇠 파일 권한이 넓음» = `chmod 600 ~/.slackmod/web-board/web.key` · 포트가 이미 쓰임 = `slackmod board start --port 8800`.
 
 ## 안 되는 때
 

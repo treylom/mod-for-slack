@@ -17,6 +17,12 @@
 #   slackmod set-effort <봇|all> <low|medium|high|xhigh|max|default>
 #                                       봇의 생각 깊이 (default = 계정 기본) · 다음 켜기부터 적용(slackmod stop <봇> → slackmod start <봇>)
 #   slackmod effort                     봇마다 지금 생각 깊이
+#   slackmod room new <이름> --goal "목표 한 줄" [--step "다음 일"]… [--thread <Slack 스레드 주소>]
+#                                       프로젝트 방 만들기(~/.slackmod/rooms/<날짜>-<이름>/ · 작업 그래프 = 목표·다음 일로 처음부터 채움)
+#   slackmod room list                  방 목록
+#   slackmod board start [--port N] | stop | status | url
+#                                       웹 현황판(이 컴퓨터 브라우저 전용 · 127.0.0.1 · 열쇠 = 처음 켤 때 이 컴퓨터에서 만듦)
+#                                       url = 처음 열 주소(열쇠 포함 · 채팅·Slack 에 붙이지 마세요)
 set -uo pipefail
 ROOT="${SLACKMOD_ROOT:-$HOME/.slackmod}"
 SELF="$ROOT/bin/slackmod"
@@ -486,6 +492,55 @@ set_effort() {
   return 0
 }
 
+# ── 웹 현황판 (11-03): 서버 = 설치된 app/mods-harness/tools/web-board/server.mjs · 설정·열쇠·명부 = ~/.slackmod/web-board/
+# (rooms.py board-config 가 만듦 · 열쇠는 처음 한 번 · 0600) · 창 = tmux 세션 «slackmod-board»(없으면 백그라운드) ·
+# 서버 끝 코드 75(플러그인 판 바뀜) = 다시 켬 · 그 밖(거절 2 · 죽음) = 멈춤 — 까닭은 web-board/server.log
+# (75 는 플러그인 폴더에 판 표시 .org-commit 이 있을 때만 남 — 지금 키트 묶음엔 없어서 설치를 다시 하면 board stop → start)
+BOARD_SESSION=slackmod-board
+BOARD_SERVER="$ROOT/app/mods-harness/tools/web-board/server.mjs"
+board_pid() { # 살아 있는 현황판 서버 pid (pid 파일 + 그 프로세스 명령줄에 server.mjs) · 없으면 rc 1
+  local p
+  p="$(cat "$ROOT/web-board/web.pid" 2>/dev/null)" || return 1
+  case "$p" in ''|*[!0-9]*) return 1 ;; esac
+  kill -0 "$p" 2>/dev/null && ps -p "$p" -o command= 2>/dev/null | grep -q 'web-board/server.mjs' && echo "$p"
+}
+board_port() { "$PY" -I -c 'import json,sys; print(json.load(open(sys.argv[1])).get("port", 8794))' "$ROOT/web-board/web.json" 2>/dev/null || echo 8794; }
+board_start() {
+  local port="$1" conf loop i=0
+  [ -f "$ROOT/lib/rooms.py" ] || die "현황판 도구가 없습니다(이 기능 전의 설치) — 새 키트로 install.sh 를 한 번 실행하세요"
+  [ -f "$BOARD_SERVER" ] || die "현황판 서버 파일이 없습니다 — 새 키트로 install.sh 를 한 번 실행하세요"
+  command -v node >/dev/null 2>&1 || die "node 가 없습니다"
+  if board_pid >/dev/null; then echo "현황판: 이미 켜져 있습니다 (127.0.0.1:$(board_port)) · 처음 열 주소 = slackmod board url"; return 0; fi
+  conf="$("$PY" -I "$ROOT/lib/rooms.py" board-config --root "$ROOT" ${port:+--port "$port"})" || exit $?
+  loop='while :; do node "$0" --config "$1" 2>>"$2"; rc=$?; [ "$rc" = 75 ] || exit "$rc"; sleep 1; done'
+  if command -v tmux >/dev/null 2>&1; then
+    tmux kill-session -t "=$BOARD_SESSION" 2>/dev/null
+    tmux new-session -d -s "$BOARD_SESSION" "$(printf 'bash -c %q %q %q %q' "$loop" "$BOARD_SERVER" "$conf" "$ROOT/web-board/server.log")" \
+      || die "tmux 창을 못 열었습니다"
+  else
+    nohup bash -c "$loop" "$BOARD_SERVER" "$conf" "$ROOT/web-board/server.log" >/dev/null 2>&1 &
+  fi
+  while ! board_pid >/dev/null && [ $i -lt 20 ]; do sleep 0.5; i=$((i + 1)); done
+  if board_pid >/dev/null; then
+    echo "현황판 켬 — 이 컴퓨터 브라우저 전용 (127.0.0.1:$(board_port))"
+    echo "처음 열 주소 = 터미널에서 slackmod board url (열쇠가 든 주소 · 채팅·Slack 에 붙이지 마세요 · 한 번 열면 브라우저가 기억)"
+    echo "프로젝트 방 만들기 = slackmod room new <이름> --goal \"목표 한 줄\" · 끄기 = slackmod board stop"
+  else
+    tail -n 5 "$ROOT/web-board/server.log" 2>/dev/null >&2
+    die "현황판이 켜지지 않았습니다(위 줄 · 기록 = ~/.slackmod/web-board/server.log)"
+  fi
+}
+board_stop() {
+  local p off=1
+  if command -v tmux >/dev/null 2>&1 && tmux has-session -t "=$BOARD_SESSION" 2>/dev/null; then tmux kill-session -t "=$BOARD_SESSION"; off=0; fi
+  if p="$(board_pid)"; then kill "$p" 2>/dev/null; off=0; fi
+  [ $off = 0 ] && echo "현황판 껐습니다" || echo "현황판: 꺼져 있습니다"
+}
+board_status() {
+  if board_pid >/dev/null; then echo "현황판: 켜짐 (127.0.0.1:$(board_port)) · 처음 열 주소 = slackmod board url"
+  else echo "현황판: 꺼짐 · 켜기 = slackmod board start"; fi
+}
+
 cmd="${1:-}"; shift || true
 [ -n "$PY" ] || die "python3 가 없습니다"
 case "$cmd" in
@@ -554,6 +609,23 @@ case "$cmd" in
     exec "$PY" -I "$ROOT/lib/record.py" undo --root "$ROOT" ${1:+"$1"} ;;
   set-effort) [ $# -eq 2 ] || RC=2 die "쓰기: slackmod set-effort <봇|all> <low|medium|high|xhigh|max|default>"; set_effort "$1" "$2" ;;
   effort) [ -f "$ROOT/config.json" ] || die "설치가 안 됐습니다 — install.sh 먼저"; "${CFG[@]}" effort-list --config "$ROOT/config.json" ;;
-  ''|-h|--help|help) sed -n 2,19p "$0" ;;
+  room)
+    [ -f "$ROOT/lib/rooms.py" ] || die "방 도구가 없습니다(이 기능 전의 설치) — 새 키트로 install.sh 를 한 번 실행하세요"
+    case "${1:-}" in
+      new|list) sub="$1"; shift; exec "$PY" -I "$ROOT/lib/rooms.py" "$sub" --root "$ROOT" "$@" ;;
+      *) RC=2 die "쓰기: slackmod room new <이름> --goal \"목표 한 줄\" [--step \"다음 일\"]… [--thread <주소>] · slackmod room list" ;;
+    esac ;;
+  board)
+    case "${1:-}" in
+      start) shift; port=""
+        case "${1:-}" in --port) port="${2:-}"; [ -n "$port" ] || RC=2 die "--port 뒤에 번호"; shift 2 ;; '') ;; *) RC=2 die "쓰기: slackmod board start [--port N]" ;; esac
+        [ $# -eq 0 ] || RC=2 die "쓰기: slackmod board start [--port N]"
+        board_start "$port" ;;
+      stop) board_stop ;;
+      status) board_status ;;
+      url) [ -f "$ROOT/lib/rooms.py" ] || die "현황판 도구가 없습니다 — 새 키트로 install.sh"; exec "$PY" -I "$ROOT/lib/rooms.py" board-url --root "$ROOT" ;;
+      *) RC=2 die "쓰기: slackmod board start [--port N] | stop | status | url" ;;
+    esac ;;
+  ''|-h|--help|help) sed -n 2,25p "$0" ;;
   *) die "모르는 명령: $cmd (slackmod help)" ;;
 esac

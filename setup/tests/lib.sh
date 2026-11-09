@@ -34,6 +34,7 @@ make_bundle() {
   cp "$p/bin/slackmod" "$b/bin/slackmod"; chmod 755 "$b/bin/slackmod"
   cp "$p/lib/slackmod_config.py" "$p/lib/route_judge.py" "$b/lib/"
   [ -f "$p/lib/record.py" ] && cp "$p/lib/record.py" "$b/lib/"
+  [ -f "$p/lib/rooms.py" ] && cp "$p/lib/rooms.py" "$b/lib/"
   cp "$p/hooks/pass.sh" "$b/hooks/"; chmod 755 "$b/hooks/pass.sh"
   cp "$p/templates/main-contract.md" "$p/templates/main-contract-solo.md" "$b/templates/"
   [ -d "$p/templates/starter-wiki" ] && cp -R "$p/templates/starter-wiki" "$b/templates/"

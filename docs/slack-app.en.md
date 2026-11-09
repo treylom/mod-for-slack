@@ -106,7 +106,7 @@ Further down the same page, **Bot Token Scopes** lists the 8 permissions from th
    It asks (in Korean) `1) Bot User OAuth Token (xoxb- 로 시작)` then `2) App-Level Token (xapp- 로 시작)`. Copy the first from the bot token tab (OAuth & Permissions) and the second from the app token tab (the tab you left open in section 2). The terminal waits until you paste. Nothing shows on screen while you paste — that is expected.
 
    Use the bot name you set in the setup wizard in place of `lead` (default: `lead`).
-4. Check: in `slackmod status` the bot's token is no longer `missing`. Starting the bot is the same as the quick start in the [README](../README.md).
+4. Check: in `slackmod status` the bot's token is no longer `missing`. Starting the bot is described in [«First use» in the README](../README.en.md#first-use).
 
 ## Letting a browser AI agent do it
 
@@ -130,7 +130,7 @@ Keeping the tokens out of conversations and logs:
 
 ## Deleting the app
 
-**Basic Information** → **Delete App** at the bottom. As the confirmation says, deleting the app makes all of its tokens invalid and cannot be undone. Undoing the mod-for-slack side is in the [README](../README.en.md) («Undo»).
+**Basic Information** → **Delete App** at the bottom. As the confirmation says, deleting the app makes all of its tokens invalid and cannot be undone. Undoing the mod-for-slack side is in [«Undo» in the README](../README.en.md#undo).
 
 ![The Delete App box at the bottom of Basic Information](img/slack-app/13-delete-app.png)
 

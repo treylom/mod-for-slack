@@ -239,6 +239,7 @@ put_file "$ROOT/bin/slackmod" 755 "$BUNDLE/bin/slackmod"
 put_file "$ROOT/lib/slackmod_config.py" 644 "$BUNDLE/lib/slackmod_config.py"
 put_file "$ROOT/lib/route_judge.py" 644 "$BUNDLE/lib/route_judge.py"   # «하위 라우터» example judge (harness.json session.jev_route argv)
 [ "$HAVE_REC" = 1 ] && put_file "$ROOT/lib/record.py" 644 "$BUNDLE/lib/record.py"   # «slackmod undo» (방금 설치 하나 되돌리기)
+[ -f "$BUNDLE/lib/rooms.py" ] && put_file "$ROOT/lib/rooms.py" 644 "$BUNDLE/lib/rooms.py"   # «slackmod room» · «slackmod board» (프로젝트 방 · 웹 현황판 설정)
 put_file "$ROOT/hooks/pass.sh" 755 "$BUNDLE/hooks/pass.sh"
 put_file "$ROOT/contract.md" 644 "$WORK/contract.md"   # = templates/main-contract.md (+ the opening line when children_open is set)
 put_file "$ROOT/contract-solo.md" 644 "$BUNDLE/templates/main-contract-solo.md"   # «하위 세션 쓰기 = 끔» bots (launch.sh SM_CONTRACT)

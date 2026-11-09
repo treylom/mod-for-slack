@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SlackMOD 현황판</title>
+<script>window.__errs = []; addEventListener('error', (e) => window.__errs.push(String(e.message))); addEventListener('unhandledrejection', (e) => window.__errs.push('rejection ' + String(e.reason)))</script>
+<style>
+:root{
+  color-scheme:light;
+  --page:#f9f9f7; --surface:#fcfcfb; --surface-2:#f2f1ed; --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --ring:rgba(11,11,11,.10);
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300;
+  --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b; --stale:#898781;
+  --busy:#2a78d6; --o1:#86b6ef; --o2:#3987e5; --o3:#1c5cab; --o4:#c3c2b7; --good-ink:#006300; --link:#256abf;
+  --pane:#000; --pane-ink:#e4e4e4;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 14px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --page:#0d0d0d; --surface:#1a1a19; --surface-2:#232321; --ink:#f0efec; --ink-2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --ring:rgba(255,255,255,.10);
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300;
+    --busy:#3987e5; --o1:#256abf; --o2:#3987e5; --o3:#86b6ef; --o4:#383835; --good-ink:#0ca30c; --link:#86b6ef;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --page:#0d0d0d; --surface:#1a1a19; --surface-2:#232321; --ink:#f0efec; --ink-2:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --axis:#383835; --ring:rgba(255,255,255,.10);
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300;
+  --busy:#3987e5; --o1:#256abf; --o2:#3987e5; --o3:#86b6ef; --o4:#383835; --good-ink:#0ca30c; --link:#86b6ef;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--page);color:var(--ink);font:14px/1.5 system-ui,-apple-system,"Apple SD Gothic Neo","Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:anywhere}
+.wrap{max-width:1320px;margin:0 auto;padding:0 24px 64px}
+header.top{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--page) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--grid)}
+header.top .wrap{display:flex;align-items:center;gap:16px;padding-top:12px;padding-bottom:12px;flex-wrap:wrap}
+.brand{font-weight:700;font-size:16px;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+.brand .dot{width:10px;height:10px;border-radius:3px;background:var(--s1)}
+.verdict{flex:1;min-width:240px;color:var(--ink-2);font-size:13px}
+.verdict b{color:var(--ink)}
+.asof{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.stall{display:none;color:var(--stale);font-weight:650;font-size:12.5px}
+body.stalled .stall{display:inline}
+body.stalled header.top{background:var(--surface-2)}
+body.stalled main{opacity:.45;filter:grayscale(1)}
+.tbtn{border:1px solid var(--ring);background:var(--surface);color:var(--ink);border-radius:8px;padding:6px 10px;font:inherit;font-size:12px;cursor:pointer}
+.fatal{margin-top:24px;padding:28px 16px;color:var(--stale);background:var(--surface-2);border-radius:10px;font-weight:650}
+section{margin-top:32px}
+section>h2{font-size:15px;margin:0 0 4px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+section>h2 .n{font-weight:400;color:var(--muted);font-size:12.5px}
+.lead{margin:0 0 14px;color:var(--ink-2);font-size:13px}
+.card{background:var(--surface);border:1px solid var(--ring);border-radius:12px;box-shadow:var(--shadow)}
+.unk{color:var(--muted)}
+/* ① 주인 차례 */
+.hero{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.hc{padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-height:110px;border-left:4px solid var(--muted)}
+.hc .k{font-size:12px;color:var(--ink-2);display:flex;align-items:center;gap:6px}
+.hc .t{font-weight:650;font-size:14.5px;line-height:1.35}
+.hc .s{font-size:12.5px;color:var(--ink-2)}
+.hc.critical{border-left-color:var(--critical)} .hc.serious{border-left-color:var(--serious)}
+.hc.warning{border-left-color:var(--warning)} .hc.stale{border-left-color:var(--stale)} .hc.good{border-left-color:var(--good)}
+.hc.unseen{border-left-style:dashed;opacity:.85}
+.qline{margin:10px 0 0;padding:8px 12px;border-radius:8px;background:color-mix(in srgb,var(--critical) 10%,transparent);font-size:13px}
+.ic{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;font-size:11px;font-weight:700;color:#fff;flex:none}
+.ic.critical{background:var(--critical)} .ic.serious{background:var(--serious)} .ic.warning{background:var(--warning);color:#0b0b0b}
+.ic.stale,.ic.unseen{background:var(--stale)} .ic.good{background:var(--good)} .ic.busy{background:var(--busy)}
+/* ② 봇 */
+.bots{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.bt{padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:2px 8px;align-items:center;min-width:0}
+.bt .nm{font-weight:650;display:flex;align-items:center;gap:6px;min-width:0}
+.bt .st{font-size:12px;color:var(--ink-2);grid-column:1/-1}
+.bt .kids{font-size:12px;color:var(--ink-2);text-align:right}
+.bt svg{grid-column:1/-1;margin-top:6px}
+.bt.dim{opacity:.62}
+.bt.stale{border-color:var(--stale);background:repeating-linear-gradient(135deg,var(--surface),var(--surface) 8px,var(--surface-2) 8px,var(--surface-2) 9px)}
+.bt.unseen{border-style:dashed}
+.g-busy{color:var(--busy)} .g-idle,.g-starting{color:var(--muted)} .g-waiting{color:#b07800} .g-stale,.g-unseen{color:var(--stale)} .g-ended,.g-failed{color:var(--muted)}
+:root[data-theme="dark"] .g-waiting{color:var(--warning)}
+/* ③ 그래프 */
+.graph-card{padding:8px 8px 4px;overflow:hidden}
+.graph-card svg{display:block;width:100%;height:auto}
+.lane-h{font-size:11.5px;fill:var(--muted);letter-spacing:.02em}
+.node rect{fill:var(--surface);stroke:var(--axis);stroke-width:1}
+.node text{fill:var(--ink);font-size:12.5px}
+.node .sub{fill:var(--ink-2);font-size:11px}
+.node tspan.g-busy{fill:var(--busy)} .node tspan.g-idle,.node tspan.g-stale,.node tspan.g-ended,.node tspan.g-failed,.node tspan.g-starting,.node tspan.g-unseen{fill:var(--muted)} .node tspan.g-waiting{fill:var(--warning)}
+.node rect.stg{stroke:none}
+.node{cursor:pointer;transition:opacity .15s}
+.node.done rect{stroke-dasharray:3 3}
+.link{fill:none;stroke:var(--axis);stroke-width:1.5;transition:opacity .15s,stroke .15s}
+.focus .node.off,.focus .link.off{opacity:.15}
+.focus .link.on{stroke:var(--s1);stroke-width:2}
+.tree{display:none;list-style:none;margin:0;padding:12px 14px}
+.tree ul{list-style:none;margin:2px 0 6px;padding-left:16px;border-left:1px solid var(--grid)}
+.tree li{padding:3px 0;font-size:13px}
+.tree .pj{font-weight:650}
+.tree .sub{color:var(--ink-2);font-size:12px}
+.tree .tk{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.empty{padding:22px 16px;color:var(--ink-2);font-size:13px}
+.quiet{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-top:12px}
+.qp{padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.qp .h{display:flex;justify-content:space-between;gap:8px;font-weight:650}
+.qp .h span{font-weight:400;color:var(--muted);font-size:12px;white-space:nowrap}
+.qp .l{font-size:12px;color:var(--ink-2);min-height:18px}
+.stagebar{display:flex;gap:2px;height:8px;border-radius:4px;overflow:hidden;background:var(--surface-2)}
+.stagebar i{display:block;height:100%}
+.stage-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-2);margin:8px 2px 0}
+.stage-legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.tag{font-size:10.5px;padding:1px 6px;border-radius:99px;border:1px solid var(--ring);color:var(--ink-2);font-weight:400}
+/* ④ 추이 */
+.charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.ch{padding:14px 16px 10px;min-width:0}
+.ch h3{margin:0;font-size:13.5px}
+.ch .cap{margin:2px 0 6px;font-size:12px;color:var(--ink-2)}
+.ch .foot{font-size:11.5px;color:var(--muted);margin-top:2px}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--ink-2);margin:4px 0;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.ax{font-size:10.5px;fill:var(--muted);font-variant-numeric:tabular-nums}
+.gl{stroke:var(--grid);stroke-width:1}
+.bl{stroke:var(--axis);stroke-width:1}
+.hit{fill:transparent;cursor:crosshair}
+.hit:hover{fill:var(--ring)}
+.multi{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:4px 18px;margin-top:12px;padding:12px 16px}
+.mrow{display:grid;grid-template-columns:72px 1fr 54px;align-items:center;gap:8px;font-size:12px}
+.mrow .v{text-align:right;color:var(--ink-2);font-variant-numeric:tabular-nums}
+/* ⑤ 사용량 · ⑥ 대장 */
+.quota{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.qbox{padding:14px 16px;min-width:0}
+.qbox h3{margin:0 0 6px;font-size:13.5px}
+.qrow{display:grid;grid-template-columns:104px 1fr 120px;gap:10px;align-items:center;padding:6px 0;font-size:12.5px;border-top:1px solid var(--grid)}
+.qrow:first-of-type{border-top:0}
+.meter{height:10px;border-radius:5px;background:var(--surface-2);overflow:hidden;position:relative}
+.meter i{position:absolute;left:0;top:0;bottom:0;border-radius:5px}
+.qrow .r{color:var(--ink-2);font-variant-numeric:tabular-nums;text-align:right;font-size:12px}
+.unknown{padding:14px 16px;display:flex;gap:12px;align-items:flex-start}
+.unknown .big{font-size:20px;font-weight:700;color:var(--stale);line-height:1.2;white-space:nowrap}
+.unknown p{margin:0;font-size:12.5px;color:var(--ink-2)}
+/* ⑦ 세팅 */
+.setup{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:12px}
+.chk,.set{padding:14px 16px;min-width:0}
+.chk h3,.set h3{margin:0 0 8px;font-size:13.5px}
+.chk table,.set table{width:100%;border-collapse:collapse;font-size:12.5px}
+.chk td,.set td,.set th{padding:6px 4px;border-top:1px solid var(--grid);vertical-align:top}
+.set th{text-align:left;font-weight:600;color:var(--ink-2);font-size:12px;border-top:0}
+.tier{font-size:11px;padding:1px 7px;border-radius:99px;white-space:nowrap}
+.tier.a{background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good-ink)}
+.tier.b{background:color-mix(in srgb,var(--warning) 25%,transparent)}
+.tier.c{background:color-mix(in srgb,var(--critical) 16%,transparent);color:var(--critical)}
+.btn{font:inherit;font-size:11.5px;border:1px solid var(--ring);background:var(--surface-2);color:var(--ink-2);border-radius:6px;padding:3px 8px;cursor:not-allowed;white-space:nowrap}
+.ok{color:var(--good-ink)} .no{color:var(--stale)}
+/* MOD 글자 판(원본 대조 · 접힘) */
+details.modpane{margin-top:40px}
+details.modpane>summary{cursor:pointer;color:var(--ink-2);font-size:13px}
+.pane{margin-top:8px;background:var(--pane);color:var(--pane-ink);border-radius:8px;padding:10px 12px;overflow:hidden}
+.mono{font-family:"SF Mono",Menlo,Consolas,"D2Coding","Noto Sans Mono CJK KR",monospace;font-size:13px;line-height:1.5;word-break:normal}
+.ln{white-space:pre-wrap;overflow-wrap:anywhere;min-height:1.5em}
+.ln.webline{font-size:12px;line-height:1.35}
+.ln.webline span{color:#8fa3ad !important}
+#meter{position:absolute;visibility:hidden;white-space:pre}
+#tip{position:fixed;pointer-events:none;z-index:20;background:var(--ink);color:var(--page);font-size:12px;padding:7px 9px;border-radius:8px;max-width:260px;opacity:0;transition:opacity .1s;line-height:1.45}
+#tip b{font-weight:650}
+footer{margin-top:24px;color:var(--muted);font-size:12px}
+details.tbl{margin-top:8px;font-size:12px;color:var(--ink-2)}
+details.tbl table{border-collapse:collapse;font-variant-numeric:tabular-nums;margin-top:6px;width:100%}
+details.tbl td,details.tbl th{border-top:1px solid var(--grid);padding:3px 6px;text-align:right}
+details.tbl th:first-child,details.tbl td:first-child{text-align:left}
+.tblwrap{overflow-x:auto}
+@media (max-width:900px){
+  .charts,.quota,.setup{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:720px){
+  .wrap{padding:0 16px 48px}
+  .graph-card svg{display:none}
+  .tree{display:block}
+  .bots{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .hero{grid-template-columns:minmax(0,1fr)}
+  .qrow{grid-template-columns:78px 1fr}
+  .qrow .r{grid-column:1/-1;text-align:left}
+  .set .hide-s{display:none}
+  .verdict{order:3;min-width:100%}
+}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <div class="brand"><span class="dot"></span>SlackMOD 현황판</div>
+  <div class="verdict" id="verdict">읽는 중…</div>
+  <span class="stall" id="stall"></span>
+  <div class="asof" id="asof"></div>
+  <button class="tbtn" id="theme" type="button">밝게/어둡게</button>
+</div></header>
+<main class="wrap" id="main">
+  <div id="fatal"></div>
+  <section id="s-hero">
+    <h2>① 주인 차례 <span class="n" id="hero-n"></span></h2>
+    <p class="lead">답·승인·막힘 — 주인이 손댈 것만 모았습니다. 멈춘 봇은 ② 봇 칸 맨 앞에 있습니다.</p>
+    <div class="hero" id="hero"></div>
+    <div id="qline"></div>
+  </section>
+
+  <section id="s-bots">
+    <h2>② 봇 <span class="n" id="bots-n"></span></h2>
+    <p class="lead">멈춤·모름 → 답 기다림 → 일하는 봇 → 쉬는 봇 순서. 막대 = 최근 7일 하루마다 끝낸 하위 일.</p>
+    <div class="bots" id="bots"></div>
+  </section>
+
+  <section id="s-graph">
+    <h2>③ 프로젝트 지도 <span class="n" id="graph-n"></span></h2>
+    <p class="lead" id="graph-lead"></p>
+    <div class="card graph-card" id="graph"></div>
+    <div class="stage-legend" id="stage-legend"></div>
+    <h2 style="margin-top:20px;font-size:13.5px">최근 7일 끝났거나 조용한 프로젝트 <span class="n" id="quiet-n"></span></h2>
+    <div class="quiet" id="quiet"></div>
+  </section>
+
+  <section id="s-trend">
+    <h2>④ 14일 추이 <span class="n" id="trend-n"></span></h2>
+    <p class="lead">차트마다 잣대 하나. 막대에 마우스를 올리면 그날 숫자가 나옵니다.</p>
+    <div class="charts" id="charts"></div>
+    <div class="card multi" id="multi"></div>
+  </section>
+
+  <section id="s-usage">
+    <h2>⑤ 사용량</h2>
+    <p class="lead">계정 한도는 이 화면이 아직 읽지 못합니다. 아는 것 = 지금 도는 세션들이 쓴 출력 토큰.</p>
+    <div class="quota" id="quota"></div>
+  </section>
+
+  <section id="s-ledger">
+    <h2>⑥ 지시 대장</h2>
+    <div id="ledger"></div>
+  </section>
+
+  <section id="s-setup">
+    <h2>⑦ 설치·세팅</h2>
+    <p class="lead">왼쪽 = 봇마다 붙어 있는지 점검(읽기만). 오른쪽 = 웹에서 바꿀 수 있게 할 설정 후보 — 지금은 보여 주기만 합니다.</p>
+    <div class="setup">
+      <div class="card chk" id="check"></div>
+      <div class="card set" id="settings"></div>
+    </div>
+  </section>
+
+  <footer id="foot"></footer>
+
+  <details class="modpane" id="modpane">
+    <summary>MOD 글자 판(터미널과 같은 글자 · 대조용)</summary>
+    <div class="pane mono" id="modout"><div class="ln">여는 중…</div></div>
+  </details>
+</main>
+<span id="meter" class="mono">0000000000</span>
+<div id="tip" role="tooltip"></div>
+<script>
+(function(){
+const POLL_MS = 10000, STALL_MS = 60000;
+const $ = s => document.querySelector(s);
+// 글 넣기: 이스케이프 + « · » 앞은 줄이 안 갈리는 빈칸(줄 첫머리에 «·»가 오지 않게)
+const escA = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])).replace(/ ·(?= )/g, ' ·');
+// 짧은 괄호 묶음(24자 이하)은 한 덩어리로(괄호 안에서 줄이 갈리지 않게) — esc 뒤에 씀
+const nwp = h => h.replace(/[(«]([^()«»<>]{1,24})[)»]/g, m => '<span style="white-space:nowrap">' + m + '</span>');
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const GLYPH = {busy:'●', idle:'○', waiting:'◎', stale:'×', ended:'✓', failed:'✕', starting:'◌', unseen:'?'};
+const WORD = {busy:'작업 중', idle:'쉼', waiting:'답 기다림', stale:'멈춤', ended:'끝남', failed:'실패로 끝남', starting:'시작 중', unseen:'모름'};
+const TYPE = {build:'만들기', review:'검토', research:'조사', meeting:'회의', ops:'운영', verify:'검증', grader:'채점', design:'디자인', 'security-review':'보안 검토', scout:'조사', plan:'계획'};
+const UNK = '<span class="unk">모름</span>';
+let D = null, NOW = Date.now(), etag = null, lastOk = 0, lastRead = 0, serverStalled = false;
+const pad = n => String(n).padStart(2, '0');
+const hms = ms => { const d = new Date(ms); return pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()); };
+const hm = ms => { const d = new Date(ms); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+const mdhm = ms => { const d = new Date(ms); return (d.getMonth()+1) + '.' + d.getDate() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+const man = n => n >= 1e8 ? (n/1e8).toFixed(1).replace(/\.0$/,'') + '억' : n >= 1e4 ? Math.round(n/1e4).toLocaleString('ko-KR') + '만' : n.toLocaleString('ko-KR');
+const md = k => k.slice(5).replace('-', '.');
+const sum = a => a.reduce((x,y) => x+y, 0);
+function ago(min){ if(min == null || !isFinite(min)) return null; if(min < 1) return '방금'; if(min < 60) return Math.round(min) + '분'; if(min < 60*48) return Math.round(min/60) + '시간'; return Math.round(min/1440) + '일'; }
+const agoMs = ms => (Number.isFinite(ms) ? ago((NOW - ms) / 60000) : null);
+const pname = k => (k == null ? '프로젝트 없음' : k);
+const pkey = k => (k == null ? '-' : String(k));
+
+/* tooltip */
+const tip = $('#tip');
+function showTip(e, html){ tip.innerHTML = html; tip.style.opacity = 1; const x = Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8); const y = Math.max(8, e.clientY - tip.offsetHeight - 10); tip.style.left = Math.max(8, x) + 'px'; tip.style.top = y + 'px'; }
+function hideTip(){ tip.style.opacity = 0; }
+
+/* theme */
+try { const t = localStorage.getItem('mhwb-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+$('#theme').onclick = () => { const r = document.documentElement; const dark = r.dataset.theme ? r.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches; r.dataset.theme = dark ? 'light' : 'dark'; try { localStorage.setItem('mhwb-theme', r.dataset.theme); } catch (e) {} render(); };
+
+/* 다시 그려도 펼친 «표로 보기»·그래프 포커스는 그대로 */
+const openTbl = new Set();
+document.addEventListener('toggle', e => { const d = e.target; if (d && d.dataset && d.dataset.k) { if (d.open) openTbl.add(d.dataset.k); else openTbl.delete(d.dataset.k); } }, true);
+const tbl = (k, inner) => `<details class="tbl" data-k="${escA(k)}"${openTbl.has(k) ? ' open' : ''}><summary>표로 보기</summary><div class="tblwrap">${inner}</div></details>`;
+
+function render(){
+  if (!D) return;
+  if (D.fatal) { $('#fatal').innerHTML = `<div class="fatal">${esc(D.fatal)} · 마지막 ${lastRead ? hm(lastRead) : '--:--'}</div>`; document.body.classList.add('stalled'); return; }
+  $('#fatal').innerHTML = '';
+  NOW = D.asOf || Date.now();
+  try { hero(); bots(); graph(); trends(); usage(); ledger(); setup(); head(); }
+  catch (e) { $('#fatal').innerHTML = `<div class="fatal">화면 그리기 실패 · ${esc(String(e && e.message || e).slice(0, 160))}</div>`; window.__errs.push('render ' + String(e && e.message || e)); }
+}
+
+/* ① 주인 차례 — 답·승인·막힘(한도 = 설정에 따라 맨 아래 한 줄 또는 카드) */
+function hero(){
+  const it = [];
+  const waits = D.owner.items.filter(x => x.kind === 'waiting');
+  waits.forEach(x => it.push({cls:'warning', ic:'◎', k:'답 기다림', t: x.project === null && x.text.startsWith('본 세션') ? x.who + ' — ' + x.text : x.who + ' 하위 — ' + (x.text || '하는 일 모름'), s: x.project ? pname(x.project) : ''}));
+  const blind = D.bots.filter(b => b.state === 'stale' || b.state === 'unseen').length;
+  if (!waits.length) it.push({cls:'good', ic:'✓', k:'답 기다림', t:'주인 답을 기다리는 봇 없음', s: blind ? '단, 멈춤·모름 봇 ' + blind + '은 알 수 없음 — ② 봇 칸 맨 앞' : '봇이 질문을 띄우면 여기 뜹니다'});
+  D.owner.items.filter(x => x.kind === 'approval').forEach(x => it.push({cls:'unseen stale', ic:'?', k:'승인 카드 · 모름', t:'열린 승인 카드는 이 화면이 아직 못 읽습니다', s:'0건이라는 뜻이 아닙니다. 승인은 지금처럼 Slack 카드에서.'}));
+  D.owner.items.filter(x => x.kind === 'block').forEach(x => { const a = x.sinceMin == null ? null : ago(x.sinceMin); it.push({cls:'serious', ic:'!', k:'막힘 열림 · ' + (a ? a + '째(추정)' : '언제부터인지 모름'), t: x.who + ' — ' + (x.task || '하는 일 모름'), s:pname(x.project) + ' — ' + (x.text && x.text.length >= 8 ? '게시판: ' + x.text : '게시판에 «막힘» 뒤 «끝» 없음')}); });
+  D.owner.items.filter(x => x.kind === 'quota').forEach(x => it.push({cls:'critical', ic:'!', k:'한도', t:x.text, s:'⑤ 사용량 보기'}));
+  $('#hero-n').textContent = '손댈 것 ' + D.owner.need + '건' + (D.owner.items.some(x => x.kind === 'approval' && !x.known) ? ' · 승인 카드는 모름' : '');
+  $('#hero').innerHTML = it.map(x => `<div class="card hc ${x.cls}"><div class="k"><span class="ic ${x.cls.split(' ').pop()}">${x.ic}</span>${esc(x.k)}</div><div class="t">${nwp(esc(x.t))}</div>${x.s ? `<div class="s">${nwp(esc(x.s))}</div>` : ''}</div>`).join('');
+  $('#qline').innerHTML = D.owner.quotaLine ? `<p class="qline"><b>한도 경고</b> — ${esc(D.owner.quotaLine)}</p>` : '';
+}
+
+/* ② 봇 */
+const ORDER = {stale:0, unseen:1, failed:1, waiting:2, busy:3, starting:3, idle:4, ended:5};
+const effState = b => (b.state === 'idle' && (b.kidsStates.busy || 0) > 0 ? 'busy' : b.state);
+function sparkBars(vals, w, h, color, label){
+  const mx = Math.max(1, ...vals), bw = w / vals.length;
+  return `<svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="${escA(label)}">` +
+    vals.map((v,i) => { const bh = v ? Math.max(2, (h-2) * v / mx) : 0; return `<rect x="${i*bw+1}" y="${h-bh}" width="${bw-2}" height="${bh}" rx="2" fill="${color}"/>`; }).join('') +
+    `<line x1="0" x2="${w}" y1="${h-.5}" y2="${h-.5}" class="bl"/></svg>`;
+}
+function botWord(b){
+  if (b.state === 'idle' && (b.kidsStates.busy || 0) > 0) return '본 세션 쉼 · 하위가 일함';
+  if (b.state === 'stale') { const a = ago(b.lastSeenMin); return a ? '멈춤 · 마지막 심박 ' + a + ' 전' : '멈춤 · 마지막 심박 모름'; }
+  if (b.state === 'unseen') return '모름 — 본 세션 기록이 없음';
+  if (b.state === 'idle' && b.lastSeenMin == null) return '쉼 · 심박 기록 없음';
+  if (b.state === 'ended') return '본 세션 닫힘 · 등록부 끝';
+  return WORD[b.state] || b.state;
+}
+const fam = m => String(m || '').replace(/^claude-/, '').replace(/-(\d)-(\d)/, ' $1.$2').replace(/^gpt-/, 'GPT ').replace(/^xai\//, '').replace(/-latest$/, '').replace('[1m]', '');
+function bots(){
+  const bs = D.bots.slice().sort((a,b) => (ORDER[effState(a)] ?? 4) - (ORDER[effState(b)] ?? 4) || b.kidsRunning - a.kidsRunning || b.done7 - a.done7 || a.name.localeCompare(b.name));
+  $('#bots-n').textContent = D.counts.bots + '봇 · 일하는 봇 ' + D.counts.working;
+  const rest = bs.filter(b => b.state === 'idle' && !b.kidsRunning && !b.done7 && !b.noreport7);
+  const shown = bs.filter(b => !rest.includes(b));
+  $('#bots').innerHTML = shown.map(b => {
+    const st = effState(b);
+    const dim = st === 'idle' && !b.kidsRunning && !b.done7 ? ' dim' : '';
+    return `<div class="card bt ${st === 'stale' ? 'stale' : st === 'unseen' ? 'unseen' : ''}${dim}">
+      <div class="nm"><span class="g g-${esc(st)}">${GLYPH[st] || '?'}</span>${esc(b.name)}</div>
+      <div class="kids">${b.kidsRunning ? '하위 ' + b.kidsRunning : ''}</div>
+      <div class="st">${esc(botWord(b))}${b.model ? ' · ' + esc(fam(b.model)) : ''}</div>
+      ${sparkBars(b.series.done.slice(-7), 140, 22, css('--s1'), b.name + ' 7일 끝낸 하위 ' + b.done7 + '건')}
+      <div class="st" style="font-size:11.5px">7일 끝낸 일 ${b.done7}${b.noreport7 ? ' · 보고 없이 닫힘 ' + b.noreport7 : ''}${b.blocked7 ? ' · 막힘 ' + b.blocked7 : ''}</div>
+    </div>`;
+  }).join('') + (rest.length ? `<div class="card bt dim"><div class="nm"><span class="g g-idle">○</span>7일 동안 하위 없는 봇 ${rest.length}</div><div class="kids"></div><div class="st">${rest.map(b => esc(b.name)).join(' · ')} — 모두 쉼</div></div>` : '');
+}
+
+/* ③ 프로젝트 지도 — 세 레인 SVG(1440) · 들여쓴 나무(390) */
+const STAGES = ['조사','만들기','검토','기타'];
+const STAGE_C = () => [css('--o1'), css('--o2'), css('--o3'), css('--o4')];
+function stageBar(st){ const tot = sum(STAGES.map(k => st[k] || 0)); if(!tot) return '<div class="stagebar"></div>'; const c = STAGE_C(); return `<div class="stagebar">${STAGES.map((k,i) => st[k] ? `<i style="width:${100*st[k]/tot}%;background:${c[i]}" title="${k} ${st[k]}"></i>` : '').join('')}</div>`; }
+let focused = null;
+function graph(){
+  const act = D.projects.filter(p => p.inGraph);
+  const quiet = D.projects.filter(p => !p.inGraph);
+  const all = D.ux.project_graph_scope === 'all';
+  $('#graph-lead').textContent = (all ? '지금 도는 프로젝트와 7일 안에 끝난 프로젝트를 올렸습니다. 점선 = 끝난 하위, 프로젝트마다 최근 3개.' : '지금 하위가 도는 프로젝트만 올렸습니다.') + ' 프로젝트 → 맡은 봇 → 하위 세션. 노드를 누르면 그 줄기만 남습니다.';
+  $('#graph-n').textContent = '그래프 프로젝트 ' + act.length + ' · 도는 하위 ' + D.counts.running;
+  const ses = D.graphSessions.filter(s => act.some(p => p.key === s.project)).slice().sort((a,b) => act.findIndex(p => p.key === a.project) - act.findIndex(p => p.key === b.project) || String(a.bot || '').localeCompare(String(b.bot || '')));
+  const g = $('#graph');
+  if (!act.length) { g.innerHTML = '<div class="empty">지금 하위가 도는 프로젝트 없음 — 아래 카드에 최근 7일 프로젝트가 있습니다.</div>'; }
+  else {
+    const W = 1200, laneX = [16, 470, 760], PW = 330, BW = 200, SW = W - 760 - 16;
+    const pk = s => pkey(s.project) + '|' + s.bot;
+    const pairs = [...new Set(ses.map(pk))];
+    const botsUsed = [...new Set(ses.map(s => s.bot))];
+    const rowS = 58, rowP = 78, top = 34;
+    const H = Math.max(top + ses.length * rowS, top + act.length * rowP, top + botsUsed.length * rowS) + 12;
+    const yS = i => top + i * rowS + (H - top - ses.length * rowS) / 2;
+    const yP = i => top + i * rowP + (H - top - act.length * rowP) / 2;
+    const botY = {}; botsUsed.forEach(b => { const ys = ses.map((s,i) => s.bot === b ? yS(i) : null).filter(v => v != null); botY[b] = sum(ys) / ys.length; });
+    const order = botsUsed.slice().sort((a,b) => botY[a] - botY[b]); let last = -1e9; order.forEach(b => { if(botY[b] < last + rowS) botY[b] = last + rowS; last = botY[b]; });
+    const c = STAGE_C();
+    const name = b => (D.bots.find(x => x.bot === b) || {}).name || b;
+    let svg = `<svg viewBox="0 0 ${W} ${Math.max(H, ...Object.values(botY).map(y => y + 52))}" role="img" aria-label="프로젝트, 봇, 하위 세션 관계">`;
+    svg += `<text class="lane-h" x="${laneX[0]+4}" y="18">프로젝트 · 단계(추정)</text><text class="lane-h" x="${laneX[1]+4}" y="18">맡은 봇</text><text class="lane-h" x="${laneX[2]+4}" y="18">하위 세션 · 하는 일</text>`;
+    const curve = (x1,y1,x2,y2) => `M${x1},${y1} C${(x1+x2)/2},${y1} ${(x1+x2)/2},${y2} ${x2},${y2}`;
+    pairs.forEach(k => { const i = k.lastIndexOf('|'); const p = k.slice(0, i), b = k.slice(i + 1); const pi = act.findIndex(x => pkey(x.key) === p); if(pi < 0) return; svg += `<path class="link" data-p="${escA(p)}" data-b="${escA(b)}" d="${curve(laneX[0]+PW, yP(pi)+30, laneX[1], botY[b]+20)}"/>`; });
+    ses.forEach((s,i) => { svg += `<path class="link" data-p="${escA(pkey(s.project))}" data-b="${escA(s.bot)}" data-s="${escA(s.sid)}" d="${curve(laneX[1]+BW, botY[s.bot]+20, laneX[2], yS(i)+22)}"/>`; });
+    act.forEach((p,i) => {
+      const y = yP(i), tot = sum(STAGES.map(k => p.stages[k] || 0)); let x = laneX[0] + 12;
+      const nm = p.name.length > 26 ? p.name.slice(0, 25) + '…' : p.name;
+      svg += `<g class="node" data-p="${escA(pkey(p.key))}" tabindex="0"><rect x="${laneX[0]}" y="${y}" width="${PW}" height="62" rx="10"/>`;
+      svg += `<text x="${laneX[0]+12}" y="${y+21}" font-weight="650">${esc(nm)}</text><text class="sub" x="${laneX[0]+PW-12}" y="${y+21}" text-anchor="end">하위 ${p.running} · 7일 끝 ${p.ended7}</text>`;
+      STAGES.forEach((k,j) => { const w = tot ? (PW-24) * (p.stages[k] || 0) / tot : 0; if(w > 0) svg += `<rect class="stg" x="${x}" y="${y+31}" width="${Math.max(0,w-2)}" height="8" rx="3" style="fill:${c[j]}"/>`; x += w; });
+      svg += `<text class="sub" x="${laneX[0]+12}" y="${y+54}">${tot ? '7일 하위 ' + tot + '개 종류 비율' : '7일 하위 없음'}</text></g>`;
+    });
+    botsUsed.forEach(b => { const bo = D.bots.find(x => x.bot === b) || {state:'unseen', kidsStates:{}}; const st = effState(bo); const n = ses.filter(s => s.bot === b).length;
+      svg += `<g class="node" data-b="${escA(b)}" tabindex="0"><rect x="${laneX[1]}" y="${botY[b]}" width="${BW}" height="40" rx="20"/><text x="${laneX[1]+16}" y="${botY[b]+25}"><tspan class="g-${esc(st)}">${GLYPH[st]||'?'}</tspan> ${esc(name(b))}</text><text class="sub" x="${laneX[1]+BW-16}" y="${botY[b]+25}" text-anchor="end">하위 ${n}</text></g>`; });
+    ses.forEach((s,i) => { const y = yS(i); const t = s.task || '하는 일 모름'; const tt = t.length > 30 ? t.slice(0,29) + '…' : t; const over = s.state === 'ended' || s.state === 'failed';
+      const when = over ? (agoMs(s.endedMs) ? agoMs(s.endedMs) + ' 전 끝남' : '끝난 때 모름') : (agoMs(s.startedMs) ? agoMs(s.startedMs) + '째' : '시작 때 모름');
+      svg += `<g class="node${over ? ' done' : ''}" data-s="${escA(s.sid)}" data-p="${escA(pkey(s.project))}" data-b="${escA(s.bot)}" tabindex="0"><rect x="${laneX[2]}" y="${y}" width="${SW}" height="46" rx="8"/><text x="${laneX[2]+12}" y="${y+19}"><tspan class="g-${esc(s.state)}">${GLYPH[s.state]||'?'}</tspan> ${esc(tt)}</text><text class="sub" x="${laneX[2]+12}" y="${y+36}">${esc(TYPE[s.type]||s.type||'종류 모름')} · ${esc(WORD[s.state]||s.state)} · ${esc(when)}</text></g>`; });
+    svg += '</svg>';
+    let tree = '<ul class="tree">';
+    act.forEach(p => { tree += `<li><span class="pj">${esc(p.name)}</span> <span class="sub">하위 ${p.running} · 7일 끝 ${p.ended7}</span>${stageBar(p.stages)}<ul>`;
+      [...new Set(ses.filter(s => s.project === p.key).map(s => s.bot))].forEach(b => { tree += `<li>${esc(name(b))}<ul>` + ses.filter(s => s.project === p.key && s.bot === b).map(s => `<li><span class="tk"><span class="g-${escA(s.state)}">${GLYPH[s.state]||'?'}</span> ${esc(s.task||'하는 일 모름')}</span><span class="sub">${esc((TYPE[s.type]||s.type||'종류 모름') + ' · ' + (WORD[s.state]||s.state))}</span></li>`).join('') + '</ul></li>'; });
+      tree += '</ul></li>'; });
+    tree += '</ul>';
+    g.innerHTML = svg + tree;
+    g.querySelectorAll('.node').forEach(n => { n.addEventListener('click', () => focusOn(n, true)); n.addEventListener('keydown', e => { if(e.key === 'Enter') focusOn(n, true); }); });
+    if (focused) { const n = [...g.querySelectorAll('.node')].find(n => keyOf(n) === focused); if (n) { focused = null; focusOn(n, false); } else focused = null; }
+  }
+  const c = STAGE_C();
+  $('#stage-legend').innerHTML = STAGES.map((k,i) => `<span><i style="background:${c[i]}"></i>${k}</span>`).join('') + '<span>막대 = 최근 7일 하위 세션 종류 비율로 본 단계 «추정»</span>';
+  $('#quiet-n').textContent = quiet.length + '개';
+  $('#quiet').innerHTML = quiet.length ? quiet.map(p => `<div class="card qp"><div class="h">${esc(p.name)}<span>7일 끝 ${p.ended7}</span></div>${stageBar(p.stages)}<div class="l">${p.last ? nwp(esc(mdhm(p.last.atMs) + ' 무렵 ' + p.last.who + ' «' + p.last.kind + '»' + (p.last.text && p.last.text.length > 3 && p.last.text !== p.last.kind ? ' ' + p.last.text : ''))) : '게시판 줄 없음'}</div><div><span class="tag">단계 추정</span></div></div>`).join('') : '<div class="empty">없음</div>';
+}
+const keyOf = n => (n.dataset.s||'') + '|' + (n.dataset.b||'') + '|' + (n.dataset.p||'');
+function focusOn(n, toggle){
+  const g = $('#graph'), s = n.dataset.s, b = n.dataset.b, p = n.dataset.p;
+  const key = keyOf(n);
+  if(toggle && focused === key){ g.classList.remove('focus'); focused = null; g.querySelectorAll('.off,.on').forEach(e => e.classList.remove('off','on')); return; }
+  focused = key; g.classList.add('focus');
+  const ses = D.graphSessions;
+  const match = e => s ? (e.dataset.s === s || (!e.dataset.s && e.dataset.b === b && (e.dataset.p === p || !e.dataset.p))) : b && !p ? e.dataset.b === b || (e.dataset.p && ses.some(x => x.bot === b && pkey(x.project) === e.dataset.p) && !e.dataset.b) : e.dataset.p === p || (!e.dataset.p && ses.some(x => pkey(x.project) === p && x.bot === e.dataset.b));
+  g.querySelectorAll('.node,.link').forEach(e => { const m = match(e); e.classList.toggle('off', !m); e.classList.toggle('on', m && e.classList.contains('link')); });
+}
+
+/* ④ 14일 추이 */
+function niceStep(mx){ const raw = mx / 4, p = Math.pow(10, Math.floor(Math.log10(raw))); const f = raw / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; }
+function bars(el, opt){
+  const W = 560, H = 170, L = opt.fmt ? 58 : 34, R = 8, T = 10, B = 24, n = D.days.length, bw = (W - L - R) / n;
+  const tot = D.days.map((_,i) => sum(opt.series.map(s => s.values[i])));
+  const mx = Math.max(1, ...tot); const step = niceStep(mx); const top = Math.ceil(mx / step) * step;
+  const y = v => T + (H - T - B) * (1 - v / top);
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${escA(opt.title)}">`;
+  for(let v = 0; v <= top; v += step){ s += `<line class="gl" x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}"/><text class="ax" x="${L-6}" y="${y(v)+3}" text-anchor="end">${opt.fmt ? opt.fmt(v) : v}</text>`; }
+  D.days.forEach((d,i) => {
+    let base = 0; const x = L + i * bw + 3;
+    opt.series.forEach((se, j) => { const v = se.values[i]; if(!v) return; const y0 = y(base), y1 = y(base + v); const h = Math.max(1.5, y0 - y1 - (j ? 2 : 0)); s += `<rect x="${x}" y="${y1}" width="${bw-6}" height="${h}" rx="${j === opt.series.length-1 || opt.series.length === 1 ? 3 : 0}" fill="${se.color}"/>`; base += v; });
+    if(i % 2 === (n-1) % 2) s += `<text class="ax" x="${x + (bw-6)/2}" y="${H-8}" text-anchor="middle">${md(d)}</text>`;
+    s += `<rect class="hit" x="${L + i*bw}" y="${T}" width="${bw}" height="${H-T-B}" data-i="${i}"/>`;
+  });
+  s += `<line class="bl" x1="${L}" x2="${W-R}" y1="${y(0)}" y2="${y(0)}"/></svg>`;
+  const lg = opt.series.length > 1 ? `<div class="legend">${opt.series.map(se => `<span><i style="background:${se.color}"></i>${esc(se.label)}</span>`).join('')}</div>` : '';
+  const t = tbl('t-' + opt.title, `<table><tr><th>날짜</th>${opt.series.map(se => `<th>${esc(se.label)}</th>`).join('')}</tr>${D.days.map((d,i) => `<tr><td>${md(d)}</td>${opt.series.map(se => `<td>${opt.fmt ? opt.fmt(se.values[i]) : se.values[i]}</td>`).join('')}</tr>`).join('')}</table>`);
+  el.innerHTML = `<h3>${esc(opt.title)}</h3><div class="cap">${esc(opt.cap)}</div>${lg}${s}${opt.foot ? `<div class="foot">${esc(opt.foot)}</div>` : ''}${t}`;
+  el.querySelectorAll('.hit').forEach(h => { h.addEventListener('mousemove', e => { const i = +h.dataset.i; showTip(e, `<b>${md(D.days[i])}</b><br>` + opt.series.map(se => `${esc(se.label)} ${opt.fmt ? opt.fmt(se.values[i]) : se.values[i]}`).join('<br>')); }); h.addEventListener('mouseleave', hideTip); });
+}
+function trends(){
+  const T = D.total;
+  $('#trend-n').textContent = '14일 끝낸 하위 ' + sum(T.done).toLocaleString('ko-KR') + ' · 보고 없이 닫힘 ' + sum(T.noreport).toLocaleString('ko-KR') + ' · 막힘 줄 ' + sum(T.blocked);
+  const box = $('#charts'); box.innerHTML = '<div class="card ch"></div><div class="card ch"></div><div class="card ch"></div><div class="card ch"></div>';
+  const cs = box.children;
+  bars(cs[0], {title:'하루 처리량', cap:'끝난 하위 세션 수 — 보고하고 끝남 / 보고 없이 닫힘', series:[{label:'보고하고 끝남', values:T.done, color:css('--s1')}, {label:'보고 없이 닫힘', values:T.noreport, color:css('--serious')}]});
+  bars(cs[1], {title:'막힘', cap:'게시판에 «막힘»이 올라온 줄 수', series:[{label:'막힘 줄', values:T.blocked, color:css('--serious')}], foot:'추정 — 게시판 줄엔 시각만 있고 날짜가 없어, 쓴 세션의 시작 날짜로 셈. 멈춤 이력은 기록이 없어 못 그림'});
+  bars(cs[2], {title:'출력 토큰', cap:'하루 동안 끝난 하위들이 쓴 출력 토큰', series:[{label:'출력 토큰', values:T.tokens, color:css('--s1')}], fmt:man, foot:'하위가 끝난 날에 통째로 셈(중간 증가분 기록 없음)'});
+  bars(cs[3], {title:'새로 띄운 하위', cap:'하루에 시작한 하위 세션 수', series:[{label:'시작', values:T.started, color:css('--s3')}], foot:'주인 승인 누름 수는 이 화면이 읽지 않아 모름'});
+  const top = D.bots.filter(b => sum(b.series.done) > 0).sort((a,b) => sum(b.series.done) - sum(a.series.done)).slice(0, 10);
+  const mx = Math.max(1, ...top.flatMap(x => x.series.done));
+  $('#multi').innerHTML = '<div style="grid-column:1/-1;font-weight:650;font-size:13.5px;margin-bottom:4px">봇별 14일 끝낸 하위 <span style="font-weight:400;color:var(--muted);font-size:12px">— 같은 잣대(가장 많은 날 기준)</span></div>' + (top.length ? top.map(b => {
+    const w = 180, h = 22, bw = w / b.series.done.length;
+    const svg = `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="none">${b.series.done.map((v,i) => { const bh = v ? Math.max(1.5, (h-1) * v / mx) : 0; return `<rect x="${i*bw+1}" y="${h-bh}" width="${bw-2}" height="${bh}" rx="1.5" fill="${css('--s1')}"/>`; }).join('')}<line class="bl" x1="0" x2="${w}" y1="${h-.5}" y2="${h-.5}"/></svg>`;
+    return `<div class="mrow" data-bot="${escA(b.bot)}"><span>${esc(b.name)}</span>${svg}<span class="v">${sum(b.series.done)}</span></div>`;
+  }).join('') : '<div class="empty">14일 동안 끝낸 하위 없음</div>');
+  $('#multi').querySelectorAll('.mrow').forEach(r => { const b = D.bots.find(x => x.bot === r.dataset.bot); r.addEventListener('mousemove', e => showTip(e, `<b>${esc(b.name)}</b><br>14일 끝낸 하위 ${sum(b.series.done)}<br>보고 없이 닫힘 ${sum(b.series.noreport)}<br>막힘 줄(추정) ${sum(b.series.blocked)}`)); r.addEventListener('mouseleave', hideTip); });
+}
+
+/* ⑤ 사용량 — 한도 원천 없음 = 모름 · 아는 것 = 도는 세션 출력 토큰 */
+function usage(){
+  const unknown = `<div class="card unknown"><div class="big">모름</div><div><h3 style="margin:0 0 4px;font-size:13.5px">계정 주간 한도 남은 양</h3><p>이 화면은 사용량 서버를 아직 읽지 않습니다. 남은 비율과 다시 차는 시각을 모릅니다 — 0%나 «꺼짐»이라는 뜻이 아닙니다.</p></div></div>`;
+  const rows = D.bots.filter(b => b.tokensNow != null && b.tokensNow > 0).sort((a,b) => b.tokensNow - a.tokensNow);
+  const mx = Math.max(1, ...rows.map(b => b.tokensNow));
+  const known = `<div class="card qbox"><h3>지금 열린 세션이 쓴 출력 토큰 <span style="font-weight:400;color:var(--muted);font-size:12px">봇별 · 본 세션 + 도는 하위 합</span></h3>` + (rows.length ? rows.map(b => `<div class="qrow"><span>${esc(b.name)}</span><div class="meter" title="${escA(man(b.tokensNow))}"><i style="width:${Math.max(1, 100 * b.tokensNow / mx)}%;background:${css('--s1')}"></i></div><span class="r">${esc(man(b.tokensNow))}</span></div>`).join('') : '<p class="lead">값 있는 세션 없음 — 모름</p>') + `<p class="lead" style="margin:8px 0 0;font-size:12px">세션이 열린 뒤 쌓인 값이라 «오늘 쓴 양»이 아닙니다.</p></div>`;
+  $('#quota').innerHTML = unknown + known;
+}
+
+/* ⑥ 대장 — 원천 없음 */
+function ledger(){
+  $('#ledger').innerHTML = `<div class="card unknown"><div class="big">모름</div><div><p>지시 대장(봇별 열린 지시 행)은 이 화면이 아직 읽지 않습니다. 대장은 지금처럼 대장 창구에서 봅니다.</p></div></div>`;
+}
+
+/* ⑦ 설치·세팅 — 웹에서 쓰기 0 */
+function setup(){
+  // 심박 있음 = 상태가 살아 있고 live 박동 시각도 있음(등록부만 최근인 쉼 = 박동 기록 없음 → 모름)
+  const heart = b => (b.state === 'busy' || b.state === 'idle' || b.state === 'waiting') && b.lastSeenMin != null;
+  const hw = b => heart(b) ? '<td class="ok">✓ 심박 있음</td>' : b.state === 'stale' ? `<td class="no">× 심박 끊김${ago(b.lastSeenMin) ? ' · ' + ago(b.lastSeenMin) + ' 전' : ''}</td>` : b.state === 'ended' ? '<td class="no">– 본 세션 닫힘 · 등록부 끝</td>' : b.state === 'starting' ? '<td>◌ 시작 중</td>' : b.state === 'unseen' ? '<td class="unk">? 모름 — 본 세션 기록 없음</td>' : '<td class="unk">? 모름 — 심박 기록 없음</td>';
+  const bad = D.bots.filter(b => !heart(b));
+  const ok = D.bots.length - bad.length;
+  const spawned = D.bots.filter(b => b.done7 + b.noreport7 + b.kidsRunning > 0).length;
+  const boardBots = D.bots.filter(b => b.boardLines > 0).length;
+  $('#check').innerHTML = `<h3>봇 연결 점검 <span style="font-weight:400;color:var(--muted);font-size:12px">${ok}/${D.bots.length} 심박 있음 · 7일 안 하위 띄운 봇 ${spawned}</span></h3><table>${bad.map(b => `<tr><td>${esc(b.name)}</td>${hw(b)}</tr>`).join('')}<tr><td colspan="2" class="ok">✓ 나머지 ${ok}봇 심박 있음${ok ? ' — ' + D.bots.filter(heart).map(b => esc(b.name)).join(' · ') : ''}</td></tr></table>
+  <h3 style="margin-top:14px">새로 설치할 때 확인할 것</h3><table><tr><td>① 봇이 심박을 남기나</td><td>위 표 · ${ok}/${D.bots.length}</td></tr><tr><td>② 하위 세션을 띄울 수 있나</td><td class="${spawned ? 'ok' : 'unk'}">7일 안 하위 기록 ${spawned}봇</td></tr><tr><td>③ 게시판에 쓸 수 있나</td><td class="${boardBots ? 'ok' : 'unk'}">게시판 줄 남긴 봇 ${boardBots}</td></tr><tr><td>④ 사용량 서버가 닿나</td><td class="unk">모름 — 이 화면은 안 읽음</td></tr></table><p class="lead" style="margin-top:10px">설치 마법사 진행 단계는 읽을 곳을 아직 못 찾았습니다(모름).</p>`;
+  const TN = {a:'보기만 바뀜', b:'확인 필요', c:'승인 카드만'};
+  const S = D.setup;
+  const hidden = ['a','b','c'].filter(l => !S.layers.includes(l));
+  $('#settings').innerHTML = `<h3>웹에서 바꿀 설정 후보 <span style="font-weight:400;color:var(--muted);font-size:12px">${S.layers.map(l => TN[l]).join(' · ')} 층</span></h3><table><tr><th>설정</th><th>지금 값</th><th>층</th><th class="hide-s">무엇이 바뀌나</th><th></th></tr>${S.rows.map(r => `<tr><td>${esc(r.name)}</td><td>${r.value == null ? '<span class="unk">모름 *</span>' : nwp(esc(r.value))}</td><td><span class="tier ${esc(r.layer)}">${TN[r.layer]}</span></td><td class="hide-s">${esc(r.risk)}</td><td><button class="btn" type="button" disabled>주인 확인 뒤 켬</button></td></tr>`).join('')}</table>${S.rows.some(r => r.value == null) ? '<p class="lead" style="margin:8px 0 0;font-size:12px">* 모름 = 이 화면이 아직 읽지 않는 값입니다. 꺼져 있다는 뜻이 아닙니다.</p>' : ''}<p class="lead" style="margin-top:10px">지금은 보여 주기만 합니다 — 이 화면에서 설정을 바꾸는 길은 없습니다. 바꾸는 기능은 주인 확인 뒤 켭니다. 켜더라도 웹은 «요청서»만 만들고, 실제 적용은 봇이 검사한 뒤 합니다.${hidden.length ? ' ' + hidden.map(l => TN[l]).join('·') + ' 층 후보는 숨겨 두었습니다.' : ''}</p>`;
+}
+
+/* 머리띠 · 꼬리 */
+function head(){
+  $('#verdict').innerHTML = `주인 차례 <b>${D.owner.need}</b>${D.owner.items.some(x => x.kind === 'approval' && !x.known) ? '+승인 모름' : ''} · 멈춤 <b>${D.counts.stale}</b> · 일하는 봇 <b>${D.counts.working}/${D.counts.bots}</b> · 도는 하위 <b>${D.counts.running}</b>`;
+  $('#foot').innerHTML = `읽은 곳: 하위 세션 등록부 · 봇 심박 · 프로젝트 게시판 — 전부 읽기만 합니다. 사용량 한도 · 지시 대장 · 승인 대기는 아직 안 읽음(모름). 상태 판정 = MOD 와 같은 함수 · 멈춤 = 심박 ${D.staleMin == null ? '?' : D.staleMin}분 넘게 끊김 · 10초마다 다시 읽음.`;
+}
+function stamp(){
+  $('#asof').textContent = '읽은 시각 ' + (lastRead ? hms(lastRead) : (D && D.asOf ? hms(D.asOf) : '--:--:--'));
+  const now = Date.now();
+  const base = lastRead || lastOk;
+  const stalled = (D && D.fatal) || (lastOk && now - lastOk > STALL_MS) || (serverStalled && base && now - base > STALL_MS);
+  document.body.classList.toggle('stalled', Boolean(stalled));
+  $('#stall').textContent = stalled && base ? '멈춤 ' + Math.max(1, Math.floor((now - base) / 60000)) + '분 · 마지막 ' + hm(base) + ' · 미관측' : '';
+}
+
+async function poll(){
+  try {
+    const r = await fetch('api/board', { headers: etag ? { 'If-None-Match': etag } : {}, credentials: 'same-origin', cache: 'no-store' });
+    if (r.status === 401) { D = { fatal: '열쇠 필요 — 열쇠 붙은 주소로 한 번 여세요' }; render(); return; }
+    if (r.status !== 200 && r.status !== 304) throw new Error('HTTP ' + r.status);
+    lastOk = Date.now();
+    const ra = Number(r.headers.get('X-Read-At')); if (ra) lastRead = ra;
+    serverStalled = r.headers.get('X-Stalled') === '1';
+    if (r.status === 200) { etag = r.headers.get('ETag'); D = await r.json(); render(); }
+  } catch (e) { /* 다음 차례 · 60초+ = 머리띠 멈춤 */ }
+  stamp();
+}
+
+/* MOD 글자 판: 펼칠 때만 읽음(/api/state · 같은 함수로 그린 터미널 글자) */
+const modout = $('#modout');
+let modCols = 0, modTimer = null;
+function colsNow(){ const m = $('#meter').getBoundingClientRect().width / 10; return Math.max(30, Math.min(240, Math.floor((modout.clientWidth - 24) / (m || 8)))); }
+function seg(s){ const el = document.createElement('span'); el.textContent = s.t; if (s.c) el.style.color = s.c; if (s.bg) el.style.background = s.bg; if (s.b) el.style.fontWeight = '700'; return el; }
+function lineEl(l){ const div = document.createElement('div'); div.className = l.web ? 'ln webline' : 'ln'; if (l.i > 0) { div.style.paddingLeft = l.i + 'ch'; div.style.textIndent = '-' + l.i + 'ch'; } for (const s of l.g || []) div.appendChild(seg(s)); return div; }
+async function modPoll(){
+  if (!$('#modpane').open) return;
+  modCols = colsNow();
+  try {
+    const r = await fetch('api/state?cols=' + modCols, { credentials: 'same-origin', cache: 'no-store' });
+    if (r.status !== 200) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    modout.textContent = '';
+    if (d.fatal) { const f = document.createElement('div'); f.className = 'ln'; f.textContent = d.fatal; modout.appendChild(f); return; }
+    for (const l of d.lines || []) modout.appendChild(lineEl(l));
+  } catch (e) { modout.textContent = ''; const f = document.createElement('div'); f.className = 'ln'; f.textContent = 'MOD 글자 판을 못 읽음 — 모름'; modout.appendChild(f); }
+}
+$('#modpane').addEventListener('toggle', () => { clearInterval(modTimer); if ($('#modpane').open) { modPoll(); modTimer = setInterval(modPoll, POLL_MS); } });
+
+let rt = null;
+addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { render(); if ($('#modpane').open && colsNow() !== modCols) modPoll(); }, 300); });
+poll();
+setInterval(poll, POLL_MS);
+setInterval(stamp, 5000);
+})();
+</script>
+</body>
+</html>

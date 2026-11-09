@@ -3,7 +3,7 @@
 
     python3 -I public/mask-public-names.py <allowed-names.txt> <scan-view-dir>
 
-Replaces each exact allowed string (longest first) with «ALLOWED-NAME» in the scan view's top-level *.md files and
+Replaces each exact allowed string (longest first) with «ALLOWED-NAME» in the scan view's top-level *.md files, docs/*.md and
 every file under rules/ — only where the string stands alone (neither the character before nor the one after is a
 letter, digit, «_», «.» or «-»), so «…/ThisCode-other» or «xx-team-harness» is left whole for the scan. Never touches the real tree (make-public passes a
 copy) · the allowed strings are literals (escaped), not patterns · symlinks refused.
@@ -29,6 +29,11 @@ rxs = [re.compile(r"(?<![A-Za-z0-9_.-])" + re.escape(s) + r"(?![A-Za-z0-9_.-])")
 root = sys.argv[2]
 
 targets = [os.path.join(root, f) for f in sorted(os.listdir(root)) if f.endswith(".md")]
+# 11-09: the public guide pages docs/*.md (install guide · developer guide · Slack app) are root docs too — the install guide
+# carries the Windows installer link from the allowed list · only *.md directly in docs/ (a .html page keeps the full scan)
+docs = os.path.join(root, "docs")
+if os.path.isdir(docs) and not os.path.islink(docs):
+    targets += [os.path.join(docs, f) for f in sorted(os.listdir(docs)) if f.endswith(".md")]
 rules = os.path.join(root, "rules")
 if os.path.isdir(rules):
     for d, _dirs, files in os.walk(rules):

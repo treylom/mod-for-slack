@@ -1,0 +1,24 @@
+{
+  "plugin_src": "~/path/to/plugin/src",
+  "mods_config": "~/path/to/your-bot.config.json",
+  "host": [
+    "127.0.0.1"
+  ],
+  "port": 8794,
+  "poll_ms": 10000,
+  "key_file": "~/.mods-harness/web-board/web.key",
+  "transcripts_root": "~/.claude/projects",
+  "pid_file": "~/.mods-harness/web-board/web.pid",
+  "owner_turn_quota": "line",
+  "project_graph_scope": "running",
+  "settings_layers": [
+    "a"
+  ],
+  "rooms_root": "~/path/to/rooms",
+  "roster_file": "~/path/to/roster.yaml",
+  "rooms_days": 31,
+  "rooms_max": 40,
+  "hide_words": [],
+  "bot_names": {},
+  "slack_workspace_url": ""
+}

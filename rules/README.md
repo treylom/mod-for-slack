@@ -4,9 +4,9 @@
 
 | 폴더 | 무엇 | 사본이 있는 저장소 |
 |---|---|---|
-| `claude-code/` | Claude Code 봇 운영 규칙 14개 + `INDEX` · 채우기 안내(`FILL-IN-GUIDE`) | ThisCode `rules/` |
-| `codex/` | Codex 봇 쪽 같은 이름의 규칙 14개(7개는 `claude-code/` 와 같은 글, 7개는 실행 방식에 맞춰 다름) + Codex 판 `INDEX` · 채우기 안내 | ThisCodex `rules/` |
-| `general/` | 특정 봇 이야기를 뺀 일반판 규칙 18개 + `INDEX` 예시 · `README`, 짧은 판 `compact/` 규칙 3개 + `README` | tofu-harness `rules/` |
+| `claude-code/` | Claude Code 봇 운영 규칙 14개 + `INDEX` · 채우기 안내(`FILL-IN-GUIDE`) | [ThisCode](https://github.com/treylom/ThisCode) `rules/` |
+| `codex/` | Codex 봇 쪽 같은 이름의 규칙 14개(7개는 `claude-code/` 와 같은 글, 7개는 실행 방식에 맞춰 다름) + Codex 판 `INDEX` · 채우기 안내 | [ThisCodex](https://github.com/treylom/ThisCodex) `rules/` |
+| `general/` | 특정 봇 이야기를 뺀 일반판 규칙 18개 + `INDEX` 예시 · `README`, 짧은 판 `compact/` 규칙 3개 + `README` | [tofu-harness](https://github.com/treylom/tofu-harness) `rules/` |
 
 - 세 저장소는 자기 `rules/` 만으로도 쓸 수 있게 사본을 그대로 둡니다. 저장소 맨 위 안내 줄이 이곳을 가리킵니다.
 - 폴더마다 `INDEX` 파일이 «이런 상황이면 이 규칙» 표입니다. `▶ Fill in` 표시가 붙은 칸은 쓰는 사람이 자기 환경 값으로 채웁니다.

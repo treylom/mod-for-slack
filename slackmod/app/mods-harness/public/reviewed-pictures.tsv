@@ -1,0 +1,25 @@
+# reviewed-pictures.tsv — every inline raster picture (data:image/png|webp;base64,…) the public build may ship.
+# public/make-public.sh refuses a tree whose picture is broken or whose sha256 (of the decoded bytes) is not here.
+# Add a row only after a person has looked at the picture (visible text: names · ids · paths · hosts · secrets) and its metadata.
+# sha256	source	review
+a8bd247288c2ec0654e1270b301c35522e5041e45221bec5a8bc379f5a51749d	tools/web-board/jobs.html picture 01 (png)	2026-11-03 look + metadata: visible text 0 hits · metadata 0 hits · picture 01
+dfa003408253de63c76b016c4812f4b77c6f088f1b1ba228fe9a9b459df07f43	tools/web-board/jobs.html picture 02 (webp)	2026-11-03 look + metadata: visible text 0 hits · metadata 0 hits · picture 02
+a8e992b6d91ccb34ed1d42a8de0bff568e7d71dc82548dc33c940311c4673c4e	tools/web-board/jobs.html picture 03 (webp)	2026-11-03 look + metadata: visible text 0 hits · metadata 0 hits · picture 03
+d1505eb5b719d23e4facb35dac0668389df3a821c422d814ae73f4d57de9c670	tools/web-board/jobs.html picture 04 (webp)	2026-11-03 look + metadata: visible text 0 hits · metadata 0 hits · picture 04
+9a409aa2769a0e688c8a0145c06ae25931f845d59cc0f48f51b29162f4b6fa26	tools/web-board/jobs.html picture 05 (webp)	2026-11-03 look + metadata: visible text 0 hits · metadata 0 hits · picture 05
+d8a3b10112f8f8416e3241929a8238411b99c4e298294e3d2b8ea664fefe3f88	tools/web-board/jobs.html picture 06 (webp)	2026-11-03 look + metadata: visible text 0 hits · metadata 0 hits · picture 06
+e657753ed49882c3fac0059d7d0c7a31c6c10f966826db7351d78061541543fc	tools/web-board/jobs.html picture 07 (webp)	2026-11-03 look + metadata: visible text 0 hits · metadata 0 hits · picture 07
+1a676d302fe44565a4e4727cc89b293bf7ffee612c7b98d159cdbdd74718491c	tools/web-board/jobs.html picture 08 (webp)	2026-11-03 look + metadata: visible text 0 hits · metadata 0 hits · picture 08
+726df9bfc9858abae2b85470ce3bd31dd1f9c5c140f0531aeff87e0183b33cb7	tools/web-board/jobs.html picture 09 (webp)	2026-11-03 look + metadata: visible text 0 hits · metadata 0 hits · picture 09
+7ff17e57c285e4499db10075c68f8df4410e48ad5319dc55491cb7169b5fdfa7	tools/web-board/jobs.html picture 10 (webp)	2026-11-03 look + metadata: visible text 0 hits · metadata 0 hits · picture 10
+9fbcfe698bffd9fde8c98a634bac7e11e47423d93672e9698504f7b8c7cf0ada	tools/web-board/jobs.html picture 11 (webp)	2026-11-03 look + metadata: visible text 0 hits · metadata 0 hits · picture 11
+bf7f7af2725cec1d0857e3f6f7b9846e70f64896c57f1dfe18c753347fdf2982	tools/web-board/jobs.html picture 12 (webp)	2026-11-03 look + metadata: visible text 0 hits · metadata 0 hits · picture 12
+6f7af4c1989ca9f0c9b7e1fc3dce49166273c1e4c229967fa804510844ab2d7e	tools/web-board/jobs.html picture 13 (webp)	2026-11-03 look + metadata: visible text 0 hits · metadata 0 hits · picture 13
+94231de51730408597b9d1882b9acdbb07dff70023122da3cdebd9d79a7d7029	tools/web-board/jobs.html picture 14 (webp)	2026-11-03 look + metadata: visible text 0 hits · metadata 0 hits · picture 14
+990a1e1ae69efadfa7761a55d3905126330000bd975a4c4c146d3a5166fdcdb9	tools/web-board/jobs.html picture 15 (webp)	2026-11-03 look + metadata: visible text 0 hits · metadata 0 hits · picture 15
+46b2f1eaf45a39eb4bea3c0af978e9790fd506c303aa17e5846229eeb39f7262	tools/web-board/jobs.html picture 16 (webp)	2026-11-03 look + metadata: visible text 0 hits · metadata 0 hits · picture 16
+63c5b5832ec9383f7b2eb642200af06992e9b12a7983144d7749f9ddeaa8cc9e	tools/web-board/jobs.html picture 17 (webp)	2026-11-03 look + metadata: visible text 0 hits · metadata 0 hits · picture 17
+bd6652775a9240885745a0f8a952ef980f57399fd20ad7792328d25b6b8d6808	tools/web-board/jobs.html picture 18 (webp)	2026-11-03 look + metadata: visible text 0 hits · metadata 0 hits · picture 18
+f197df48bb64a05100d65ea879f5eb9b293074f7319d5bacc79afcaef008c779	tools/web-board/jobs.html picture 19 (webp)	2026-11-03 look + metadata: visible text 0 hits · metadata 0 hits · picture 19
+746fcb3e9dd0b33e2b48db338619fff63e06c7d6aad0592737ac62ee85517f50	tools/web-board/jobs.html picture 20 (webp)	2026-11-03 look + metadata: visible text 0 hits · metadata 0 hits · picture 20
+f143220cb935dbf744d46e2db541886f23364c47ac6d2da72de7e55ce644b804	tools/web-board/jobs.html picture 21 (webp)	2026-11-03 look + metadata: visible text 0 hits · metadata 0 hits · picture 21

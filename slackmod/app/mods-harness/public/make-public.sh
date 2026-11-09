@@ -93,7 +93,7 @@ if [ -d "$W/src/public/root/docs" ]; then
 fi
 
 # 3. gates over the WHOLE tree — read through a scan view: the exact public link strings listed in
-#    public/allowed-public-names.txt are masked in root *.md and rules/ only (nothing else is masked, nowhere else);
+#    public/allowed-public-names.txt are masked in root *.md, docs/*.md and rules/ only (nothing else is masked, nowhere else);
 #    rules/ is scanned on its own with the identity classes only (its 설계 메모 section refs and template words such as
 #    «internal» are the rules' own vocabulary) · every other folder keeps the full table.
 V="$W/scanview"; cp -R "$S" "$V"
@@ -109,6 +109,19 @@ if [ -d "$VR/rules" ]; then
   tail -1 "$W/scan-rules.txt"
 fi
 rm -rf "$V" "$VR"
+# inline pictures: every data:image/… span (svg excluded) must be ONE WHOLE picture whose sha256 is in public/reviewed-pictures.tsv
+# (a picture was looked at by a person before it ships — the trace scan cannot read names inside a picture · 11-03)
+python3 -I "$W/src/port/scrub-traces.py" --list-pictures "$S" > "$W/pictures.tsv" || fail "picture list failed"
+pn=0; pbad=""
+while IFS=$'\t' read -r psha ppath pkind pstate; do
+  pn=$((pn + 1))
+  if [ "$pstate" != whole ]; then pbad="$pbad
+broken $pkind picture: $ppath"
+  elif ! awk -F"\t" -v s="$psha" '$1 == s { f = 1 } END { exit !f }' "$W/src/public/reviewed-pictures.tsv"; then pbad="$pbad
+picture not in public/reviewed-pictures.tsv: $ppath $psha"; fi
+done < "$W/pictures.tsv"
+[ -z "$pbad" ] || { printf '%s\n' "$pbad" | sed '/^$/d' | head -10 >&2; fail "inline picture not whole or not reviewed"; }
+step "inline pictures: $pn whole · all in public/reviewed-pictures.tsv"
 # user-facing copy: no in-house jargon (porting rule 설계 메모) — root docs + setup/ markdown
 JARGON='정본|환류|린팅|발주|오케스트레이터|SoT|볼트 마스터|하위 봇'
 jh="$( { find "$S" -maxdepth 1 -name '*.md' -type f -print0 | xargs -0 grep -n -E "$JARGON" 2>/dev/null

@@ -1,4 +1,4 @@
-# Exact strings allowed in the public root docs (*.md at the top) and rules/ — the related public repositories.
+# Exact strings allowed in the public root docs (*.md at the top and docs/*.md) and rules/ — the related public repositories.
 # make-public.sh masks only these strings, only in those files, before the trace scan; anything else that matches
 # the trace table (an owner name on its own, another repository, a path) still fails the build.
 # One string per line · longest match first is handled by the masker · no patterns.

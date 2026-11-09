@@ -106,7 +106,7 @@ mod-for-slack 봇 하나는 Slack 앱 하나를 씁니다. 봇이 둘이면 앱�
    `1) Bot User OAuth Token (xoxb- 로 시작)` → `2) App-Level Token (xapp- 로 시작)` 순서로 묻습니다. 첫째는 봇 토큰 탭(OAuth & Permissions)에서, 둘째는 앱 토큰 탭(2절에서 토큰을 띄워 두고 남겨 둔 탭)에서 복사해 붙여 넣으세요. 터미널은 붙여 넣을 때까지 기다립니다. 붙여 넣어도 화면에 글자가 보이지 않는 것이 정상입니다.
 
    `lead` 자리에는 설치 마법사에서 정한 봇 이름을 넣습니다(기본 봇 이름 = `lead`).
-4. 확인: `slackmod status` 에서 그 봇 토큰이 `missing` 이 아니면 됩니다. 켜는 법은 [README](../README.md) 의 빠른 시작과 같습니다.
+4. 확인: `slackmod status` 에서 그 봇 토큰이 `missing` 이 아니면 됩니다. 켜는 법은 [README 의 «처음 쓰기»](../README.md#처음-쓰기)에 있습니다.
 
 ## 브라우저 AI 에이전트에게 맡길 때
 
@@ -130,7 +130,7 @@ mod-for-slack 봇 하나는 Slack 앱 하나를 씁니다. 봇이 둘이면 앱�
 
 ## 앱을 지우려면
 
-**Basic Information** 맨 아래 **Delete App**. 확인 창 안내대로, 앱을 지우면 그 앱의 토큰도 모두 쓸 수 없게 되고 되돌릴 수 없습니다. mod-for-slack 쪽을 되돌리는 법은 [README](../README.md) 의 «되돌리기»에 있습니다.
+**Basic Information** 맨 아래 **Delete App**. 확인 창 안내대로, 앱을 지우면 그 앱의 토큰도 모두 쓸 수 없게 되고 되돌릴 수 없습니다. mod-for-slack 쪽을 되돌리는 법은 [README 의 «되돌리기»](../README.md#되돌리기)에 있습니다.
 
 ![Basic Information 맨 아래 Delete App 칸](img/slack-app/13-delete-app.png)
 

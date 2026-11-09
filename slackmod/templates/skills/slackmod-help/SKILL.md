@@ -22,6 +22,8 @@ description: 사용자가 «무엇을 쓰면 되나요?», «이 봇이 뭘 할 
 - 방금 설치 되돌리기: `slackmod undo`(먼저 보여 줌) → `slackmod undo --yes` · 설치 뒤 손으로 고친 파일이 있으면 멈춥니다 · Slack 토큰은 그대로
 - 봇 생각 깊이: `slackmod effort`(지금 값) · `slackmod set-effort <봇|all> <low|medium|high|xhigh|max|default>` → 그 봇을 껐다 켜면 적용
 - 미뤄 둔 설치 칸 이어 하기: 저장소 폴더에서 `bash install.sh --resume`
+- 웹 현황판(이 컴퓨터 브라우저 전용): `slackmod board start` → 처음 열 주소는 사용자가 터미널에서 `slackmod board url`(열쇠가 든 주소 — 채팅·Slack 에 옮기지 않음) · 끄기 `slackmod board stop`
+- 프로젝트 방 · 작업 그래프: `slackmod room new <이름> --goal "목표 한 줄" --step "다음 일"` → `~/.slackmod/rooms/<날짜>-<이름>/01-spec.md` 의 «의존 그래프»가 현황판에 그려집니다. 일이 움직이면 그 그래프의 노드 글 맨 앞 상태(✅ 끝 · 🔄 하는 중 · ⏳ 기다림 · ❌ 막힘 · ❓ 사람 판단)를 고치고 노드(`X["⏳ 할 일"]`)·화살표(`A --> X`)를 더합니다 · 목록 `slackmod room list`
 
 ## 하지 않는 것
 - 사용자가 고르지 않은 기능을 깔거나 켜지 않습니다.
