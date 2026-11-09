@@ -21,6 +21,23 @@ Start from the official definitions ([overview, "Compare mods, settings hooks, s
 | MCP server | An external process or service that gives Claude tools |
 | Mod | Functions in a plugin that Claude Code calls in its own process |
 
+```mermaid
+flowchart TB
+  subgraph NO["Without a CCMod — command hook"]
+    direction LR
+    A1["PreToolUse event<br/>Claude Code process"] -- "spawns a process" --> P1["Hook command runs<br/>separate process"] --> W1["Answers by exit code or stdout, exits<br/>separate process"] -- "result read back" --> R1["Decision applied<br/>Claude Code process"]
+  end
+  subgraph YES["With a CCMod — mod hook"]
+    direction LR
+    A2["tool.call event<br/>Claude Code process"] -- "function call" --> C2["mod hook function<br/>next · {deny} · {result}"]
+  end
+  NO ~~~ YES
+  classDef out stroke-dasharray:5 5
+  class P1,W1 out
+```
+
+A mod is a set of plugin functions that Claude Code calls in its own process. This is the official definition. The two rows draw the same job, the check right before a tool call, both ways; the bottom row is the basic mod shape. On top of that, the mod-for-slack gate in `src/hooks-port` runs the Python runner through `$.process.run` on every tool call. That call happens inside the mod's `tool.call` handler, before the `PreToolUse` hooks in user and project settings, and takes the session transcript as input (managed-settings `PreToolUse` is the exception; see "Order" and "What we do not claim" below). Row length is the number of places passed, not a latency figure. The two pictures below show the hook side and the tool side in more detail.
+
 ### Hooks
 
 - **Range of outcomes** — a settings hook can change whether a call goes ahead, its arguments and result, and added context. A mod hook observes with `next(e)`, passes a rewritten `e`, refuses with `{deny}`, or answers with `{result}` without running the tool (Observe · Rewrite · Answer · [overview](https://code.claude.com/docs/en/plugins/mods/overview.md)).

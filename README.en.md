@@ -34,6 +34,23 @@ Claude Code already has "hooks": checkpoints that step in right before the AI ed
 
 A CCMod hook runs as a function "inside" Claude Code ([official docs](https://code.claude.com/docs/en/plugins/mods/overview.md)). That lets it do more.
 
+```mermaid
+flowchart TB
+  subgraph NO["Without a CCMod — the long way"]
+    direction LR
+    A1["AI wants to use a tool<br/>inside Claude Code"] -- "goes outside" --> P1["A program starts<br/>outside Claude Code"] --> W1["Writes an answer, then stops<br/>outside Claude Code"] -- "comes back in" --> R1["Gets the answer and moves on<br/>inside Claude Code"]
+  end
+  subgraph YES["With a CCMod — the short way"]
+    direction LR
+    A2["AI wants to use a tool<br/>inside Claude Code"] -- "inside" --> C2["The CCMod decides<br/>always on inside"]
+  end
+  NO ~~~ YES
+  classDef out stroke-dasharray:5 5
+  class P1,W1 out
+```
+
+A CCMod is a part that stays switched on inside Claude Code. The two rows draw the same job, the check right before the AI uses a tool, both ways; the bottom row is the basic CCMod shape. On top of that, mod-for-slack calls a rule-check program outside once each time a tool is used. The CCMod inside makes that call before the hooks you set in your own settings, and hands the program the conversation so far. Row length shows the places passed and does not mean faster.
+
 | Older way (settings hook) | CCMod hook |
 |---|---|
 | Runs a program outside Claude Code each time | Called right inside Claude Code |
@@ -43,10 +60,12 @@ A CCMod hook runs as a function "inside" Claude Code ([official docs](https://co
 
 Giving the AI tools works differently too. MCP is a standard way to connect outside programs' tools to the AI. It is like a shop outside: the tools live in a separate program (a server), and Claude Code connects to it. A CCMod registers its tools right inside Claude Code. There is no separate server, and the tools are ready before the first question when a new conversation (session) starts.
 
+**A closer look — the path of one tool call**
+
 ```mermaid
 flowchart LR
   subgraph IN["Inside Claude Code"]
-    A["AI is about to use a tool"] --> G{"① CCMod gate<br/>decides with the conversation in view"}
+    A["AI is about to use a tool"] --> G{"① CCMod gate<br/>passes the conversation on for a verdict"}
     G -- "go ahead · rewrite" --> H["② older hook<br/>settings hook"]
     H --> T["tool runs"]
     G -- "answer instead" --> R["answer without the tool"]

@@ -469,6 +469,7 @@ export function boardModel(inp) {
       for (const x of g.list) if (x && typeof x.by === 'string' && x.by) { const e = byId.get(x.by); pushOpen(g.project, x, e ? boardLineMs(x.at, upOf(e)) : null) }
     }
   }
+  const datedN = zeros() // 11-09: 날마다 날짜를 붙인 게시판 줄 수(종류 무관) — 14일 «막힘»을 셀 수 있는 날(아래 blockedSeen)
   for (const n of inp.notes || []) {
     const list = Array.isArray(n.entries) ? n.entries : []
     const atOf = new Array(list.length).fill(null)
@@ -478,7 +479,7 @@ export function boardModel(inp) {
       if (!e) continue
       if (!anchor.has(e.id)) anchor.set(e.id, upOf(e))
       const t = boardLineMs(list[i].at, anchor.get(e.id))
-      if (Number.isFinite(t)) { atOf[i] = t; anchor.set(e.id, t) }
+      if (Number.isFinite(t)) { atOf[i] = t; anchor.set(e.id, t); const di = ixOf(t); if (di >= 0) datedN[di]++ }
     }
     list.forEach((ln, i) => {
       const e = byId.get(ln.by)
@@ -541,12 +542,17 @@ export function boardModel(inp) {
   ]
   const setup = { layers: ux.settings_layers, writable: false, rows: allRows.filter((r) => ux.settings_layers.includes(r.layer)) }
 
+  // 11-09 14일 «막힘»을 셀 수 있는 날(/api/jobs 만 씀 · /api/board total.blocked 는 숫자 그대로):
+  //   게시판 줄엔 날짜가 없어 등록부(+보관) 행 시각으로 날짜를 붙이고, 읽는 게시판도 «지금 등록부에 하위가 있는 프로젝트»의 날짜 방뿐 →
+  //   그날 날짜 붙은 줄(종류 무관)이 하나도 없으면 «안 읽힌 날»일 수 있음 = 0 이 아니라 «셈 안 됨»(null) · 오늘 = 늘 셈(집계 중)
+  //   (11-09 실자료: 날짜 붙은 첫 줄 이후 규칙이면 10-28~10-31 이 0 으로 나옴 — 그 방들을 안 읽은 날을 0 으로 단정하게 됨)
+  const blockedSeen = datedN.map((n, i) => n > 0 || i === nDays - 1)
   const bots = [...B.values()]
   // 응답 받침(봇 조건 1): task·게시판 줄 말고도 bot·sid·model·project·who·type 등 모든 글자 값을 safeText 로
   return scrubDeep({
     asOf: now, staleMin: Number.isFinite(S.staleMin) ? S.staleMin : null, days, ux,
     owner: { items, need, quotaLine },
-    bots, sessions, graphSessions, projects, openBlocks, total,
+    bots, sessions, graphSessions, projects, openBlocks, total, blockedSeen,
     quota, ledger: null, approvals: null, setup,
     counts: { bots: bots.length, working: bots.filter((b) => b.state === 'busy' || (b.kidsStates.busy || 0) > 0).length,
       stale: bots.filter((b) => b.state === 'stale').length + sessions.filter((s) => s.state === 'stale').length, running: sessions.length },

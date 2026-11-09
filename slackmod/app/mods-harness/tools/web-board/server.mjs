@@ -21,9 +21,9 @@ import os from 'node:os'
 import crypto from 'node:crypto'
 import { execFileSync, execFile } from 'node:child_process'
 import { pathToFileURL, fileURLToPath } from 'node:url'
-import { hostAllowed, busyFallback, lastTool, boardModel, boardInputOf, uxOf, maskSecret, maskEntry, maskLive, maskBoard, scrubDeep } from './lib.mjs'
+import { hostAllowed, busyFallback, lastTool, boardModel, boardInputOf, uxOf, maskSecret, maskEntry, maskLive, maskBoard, scrubDeep, kstDay } from './lib.mjs'
 import { makeHandler, keyChecker, cachedJson } from './handler.mjs'
-import { parseRoomSpec, rosterOf, withOwners, pickRooms, jobsModel, threadUrlOf, relink, WORKSPACE_RX, displayNameOf, hideWordsDeep, displayOf, usageOf, closedOf, autoTitle, aboutOf, followTokens, parseFind, parseShow, followupsModel, kstIso, threadTsOf, projgraphModel } from './jobs.mjs'
+import { parseRoomSpec, rosterOf, withOwners, pickRooms, jobsModel, threadUrlOf, relink, WORKSPACE_RX, displayNameOf, hideWordsDeep, displayOf, usageOf, closedOf, autoTitle, aboutOf, followTokens, parseFind, parseShow, followupsModel, kstIso, threadTsOf, projgraphModel, kpiRowOf, historyPut, historyOf } from './jobs.mjs'
 import { setupSteps, parseEnvStatus } from './setup.mjs'
 
 // ── 설정 ──
@@ -69,6 +69,9 @@ const OPT = {
   listenWaitMs: Number.isInteger(CONF.listen_wait_ms) && CONF.listen_wait_ms >= 0 ? CONF.listen_wait_ms : 90000,
   // 11-09 «회의 결정 후속» 칸: 할 일 목록 읽기 명령(절대 경로 배열 · 예: ["/usr/bin/python3", "/path/to/tasks-cli"] · 하위 명령 find·show 를 받는 도구) — 없으면 칸 없음(followups = null)
   followups: followOpt(CONF.followups),
+  // 11-09 숫자 칸 하루 1행 기록(③) 파일 = 설정 history_file · 없으면 pid_file 옆 «jobs-history.json»(웹 상태 폴더 · 설정 손 0) · 둘 다 없으면 기록 안 함(history = null)
+  historyFile: exp(CONF.history_file || (CONF.pid_file ? path.join(path.dirname(exp(CONF.pid_file)), 'jobs-history.json') : '')),
+  historyMs: Number.isInteger(CONF.history_ms) && CONF.history_ms >= 2000 ? CONF.history_ms : 300000, // 보는 사람이 없어도 그날 행을 남기는 주기 · 파일 쓰기 최소 간격(시험만 줄임)
 }
 
 function followOpt(f) {
@@ -119,6 +122,7 @@ const SOCKS = new Set() // 열린 연결(끝낼 때 하나씩 «응답 다 보�
 let TIMER = null
 let USAGE_TIMER = null
 let FOLLOW_TIMER = null
+let HISTORY_TIMER = null
 let STOPPING = false
 // 연결 하나 닫기: 지금 응답이 아직 안 끝났으면 끝날 때까지 기다림 → 다음 요청은 http 층에 안 넘김 → end() = 쌓인 바이트를 다 보낸 뒤 FIN
 // (http.Server.close 는 node 19+ 에서 «end() 부른 응답»의 연결을 destroy 해 아직 못 보낸 바이트를 자름 — 독립 재검 verify-1 FIX-1 실측 · 그래서 net 의 close + 여기)
@@ -140,6 +144,8 @@ function shutdown(code, waitMs) {
   process.exitCode = code // close 콜백이 안 와도 고리가 비면 이 코드로 끝남
   if (TIMER) clearInterval(TIMER)
   if (USAGE_TIMER) clearInterval(USAGE_TIMER)
+  if (HISTORY_TIMER) clearInterval(HISTORY_TIMER)
+  try { historyFlush(true) } catch { /* 기록 못 씀 = 끝내기는 그대로 */ }
   if (OPT.pidFile) { try { if (fs.readFileSync(OPT.pidFile, 'utf8').trim() === String(process.pid)) fs.unlinkSync(OPT.pidFile) } catch { /* 없음 */ } }
   const done = () => process.exit(code)
   let left = SERVERS.length
@@ -193,6 +199,7 @@ function withLook(web, fn) {
 const ST = {
   cfg: null, cfgKey: null,
   entries: new Map(), lives: new Map(), // 파일 이름 → { key, val }
+  archive: new Map(), archiveDir: null, // 11-09 등록부 보관 폴더(끝난 지 오래된 하위 행) · 캐시 따로 · 14일 칸 재료만(boardEntries)
   bindings: null, bindKey: null, hidden: {}, hidKey: null,
   boards: new Map(), boardFiles: new Map(), rooms: new Map(), notePaths: new Map(),
   tx: new Map(), txPath: new Map(), txScanAt: 0,
@@ -203,7 +210,7 @@ const ST = {
 const stamp = (st) => st.mtimeMs + ':' + st.size
 function statOr(p) { try { return fs.statSync(p) } catch { return null } }
 
-function readDir(dir, cache, parse) {
+function readDir(dir, cache, parse, oldMs) {
   let names = []
   try { names = fs.readdirSync(dir).filter((n) => n.endsWith('.json')) } catch { names = [] }
   const keep = new Set(names)
@@ -211,6 +218,7 @@ function readDir(dir, cache, parse) {
   for (const n of names) {
     const st = statOr(path.join(dir, n))
     if (!st) continue
+    if (Number.isFinite(oldMs) && st.mtimeMs < oldMs) { cache.delete(n); continue } // 보관 폴더만: 14일 칸에 못 드는 옛 파일 = 안 읽음
     const had = cache.get(n)
     if (had && had.key === stamp(st)) continue
     try {
@@ -227,7 +235,34 @@ function readCfg() {
   const raw = JSON.parse(fs.readFileSync(OPT.modsConfig, 'utf8'))
   ST.cfg = M.uiSettings(raw, HOME)
   M.setBotDisplay(ST.cfg.botDisplay)
+  ST.archiveDir = archiveDirOf(raw, ST.cfg.registryDir)
   ST.cfgKey = stamp(st)
+}
+
+// ── 11-09 지난 기록(주인 «이대로 ㄱㄱ.» · 14일 앞 칸 ≈0 고침) ──
+// MOD 는 끝난 지 archive_after_days(기본 3일) 지난 하위 행을 등록부(registry.d)에서 보관 폴더로 옮김(같은 파일 이름 · core.js archiveDue).
+// 이 서버는 등록부만 읽어 14일 칸 앞 날이 0 으로 보였음 → 보관 폴더도 같은 M.parseEntry 로 읽음(캐시 따로 · 읽기만).
+// 보관 폴더 자리 = MOD 와 같은 규칙(core.js: session.registry_archive_dir · 없으면 registry_dir 옆 «registry-archive»)
+//   — uiSettings 엔 이 칸이 없어 설정 원문에서 읽음(NEED 표 손 0) · 설정 파일이 없으면 기본 등록부 옆
+const siblingDir = (dir, name) => String(dir || '').replace(/\/+$/, '').replace(/\/[^/]*$/, '') + '/' + name
+function archiveDirOf(raw, registryDir) {
+  const s = raw && typeof raw === 'object' && raw.session && typeof raw.session === 'object' ? raw.session.registry_archive_dir : null
+  return typeof s === 'string' && s ? exp(s) : registryDir ? siblingDir(registryDir, 'registry-archive') : null
+}
+// 옛 파일 거름: 행 파일을 마지막으로 쓴 때 ≥ 그 행의 시작·끝 시각 → (14+1)일보다 오래전에 마지막으로 쓴 파일은 14일 칸 어디에도 못 듦(실측 대조 = 결과 파일)
+const ARCHIVE_KEEP_MS = 15 * 86400e3
+// /api/board · /api/jobs 의 boardModel 두 곳에만 넣는 행 = 등록부 + 보관(같은 id = 등록부 행 우선 · 살아 있는 판이 최신)
+//   나무(/api/state)·줄기(projgraph)·후속·게시판 읽기(refreshBoards)엔 안 넣음 — 끝난 지 오래된 행이 «지금» 칸을 바꾸지 않게
+function boardEntries() {
+  const out = [...ST.entries.values()].map((x) => x.val)
+  const ids = new Set(out.map((e) => e && e.id))
+  for (const x of ST.archive.values()) {
+    const e = x.val
+    if (!e || typeof e.id !== 'string' || ids.has(e.id)) continue
+    ids.add(e.id)
+    out.push(e)
+  }
+  return out
 }
 
 function readText(p, keyName, parse, empty) {
@@ -505,6 +540,7 @@ function tick() {
     readCfg()
     readDir(ST.cfg.registryDir, ST.entries, M.parseEntry)
     readDir(ST.cfg.liveDir, ST.lives, M.parseLive)
+    if (ST.archiveDir) readDir(ST.archiveDir, ST.archive, M.parseEntry, Date.now() - ARCHIVE_KEEP_MS) // 없는 폴더 = 빈 목록(readDir)
     const b = readText(ST.cfg.board.binding_file, 'bindKey', M.foldBindings, null)
     if (b !== undefined) ST.bindings = b
     const h = readText(ST.cfg.board.hidden_file, 'hidKey', M.parseHidden, {})
@@ -689,7 +725,7 @@ function stateJson(q) {
 // 사용량 한도 · 대장 · 승인 대기는 이 서버가 읽지 않음 → null(화면 «모름»).
 function boardJson() {
   return cachedJson(CACHE, ['board', ST.seq].join('|'), { fatalCode: FATAL || (ST.cfg ? null : 'E_NOT_READY'), log: logLocal, build: () => {
-    const body = boardModel(boardInputOf({ cfg: ST.cfg, entries: [...ST.entries.values()].map((x) => x.val),
+    const body = boardModel(boardInputOf({ cfg: ST.cfg, entries: boardEntries(),
       lives: new Map([...ST.lives.values()].map((x) => [x.val.id, x.val])), notePaths: ST.notePaths, boardFiles: ST.boardFiles,
       bindings: ST.bindings, M, hasWorking: HAS_WORKING, hosts: OPT.hosts, ux: OPT.ux, now: Date.now(), boards: ST.boards }))
     body.commit = COMMIT0 ? COMMIT0.slice(0, 7) : null
@@ -740,7 +776,7 @@ function projgraphNow(board) {
 // 응답 전체 = scrubDeep(글자 칸 전부 safeText) — 덧붙이는 칸 = 링크(thread_url · 허용 꼴만 · relink)뿐(commit·working 도 안 실음)
 function jobsJson() {
   return cachedJson(CACHE, ['jobs', ST.seq, TEAM.rev].join('|'), { fatalCode: FATAL || (ST.cfg ? null : 'E_NOT_READY'), log: logLocal, build: () => {
-    const board = boardModel(boardInputOf({ cfg: ST.cfg, entries: [...ST.entries.values()].map((x) => x.val),
+    const board = boardModel(boardInputOf({ cfg: ST.cfg, entries: boardEntries(),
       lives: new Map([...ST.lives.values()].map((x) => [x.val.id, x.val])), notePaths: ST.notePaths, boardFiles: ST.boardFiles,
       bindings: ST.bindings, M, hasWorking: HAS_WORKING, hosts: OPT.hosts, ux: OPT.ux, now: Date.now(), boards: ST.boards }))
     // 링크 칸 = scrubDeep 이 주소를 깎으므로 허용 꼴(jobs.mjs SLACK_PERMALINK_RX)만 뒤에 다시 붙임
@@ -757,8 +793,53 @@ function jobsJson() {
     out.usage = TEAM.val ? hideWordsDeep(TEAM.val, OPT.hideWords) : null // 11-04 위 pollUsage 가 읽어 둔 값(요청마다 바깥 호출 0) · 글자 = «#P»·낱말·ISO 뿐
     // 11-09 «봇 · 프로젝트» 줄기(위 projgraphNow · 실패 = 마지막 좋은 값 또는 null) — 글자 칸 = scrubDeep · 가림 낱말(링크 칸 없음)
     out.projgraph = hideWordsDeep(scrubDeep(projgraphNow(board)), OPT.hideWords)
+    // 11-09 숫자 칸 하루 1행(③) — 이 몸통(화면이 받는 것 그대로)에서 셈 · 기록 파일이 없으면 null(화면 = «기록 전»)
+    out.history = historyRecord(out)
     return out
   } })
+}
+
+// ── 11-09 숫자 칸 하루 1행 기록(주인 «이대로 ㄱㄱ.» ③ · MOD 손 0) ──
+// 하루 = KST 달력일 · 그날 마지막으로 읽은 값이 그날 행(같은 날 = 덮어씀) · 파일 1개 · 최근 30행 · start = 처음 쓴 날
+// 읽는 때 = /api/jobs 를 만들 때마다(메모리) + 보는 사람이 없어도 historyMs(5분)마다 한 번 만듦(main) — 파일 쓰기 = 날이 바뀌었거나 값이 바뀌고 historyMs 지났을 때 · 끝낼 때
+// 쓰기 = 임시 파일 → 이름 바꾸기(찢긴 파일 0) · 0600 · 실패 = 메모리 값 유지 + 로컬 기록 한 줄(같은 까닭은 한 번만) · 화면 다른 칸 영향 0
+const HIST = { val: null, loaded: false, day: null, wroteAt: 0, wroteText: null, err: null }
+function historyLoad() {
+  if (HIST.loaded) return
+  HIST.loaded = true
+  let raw = null
+  try { raw = JSON.parse(fs.readFileSync(OPT.historyFile, 'utf8')) } catch (err) { if (err && err.code !== 'ENOENT') logLocal('숫자 칸 기록 파일 못 읽음(새로 시작): ' + String(err && err.message || err).slice(0, 120)) }
+  HIST.val = historyOf(raw)
+  HIST.wroteText = raw ? JSON.stringify(HIST.val) : null
+  HIST.day = HIST.val.daily.length ? HIST.val.daily[HIST.val.daily.length - 1].day : null
+}
+function historyFlush(force) {
+  if (!OPT.historyFile || !HIST.val) return
+  const text = JSON.stringify(HIST.val)
+  if (text === HIST.wroteText) return
+  const now = Date.now()
+  const last = HIST.val.daily.length ? HIST.val.daily[HIST.val.daily.length - 1].day : null
+  if (!force && last === HIST.day && now - HIST.wroteAt < OPT.historyMs) return // 같은 날 · 막 썼음 = 다음에(그날 마지막 값은 날 바뀔 때·끝낼 때 씀)
+  try {
+    const tmp = OPT.historyFile + '.tmp-' + process.pid
+    fs.writeFileSync(tmp, text + '\n', { mode: 0o600 })
+    fs.renameSync(tmp, OPT.historyFile)
+    HIST.wroteText = text; HIST.wroteAt = now; HIST.day = last; HIST.err = null
+  } catch (err) {
+    const why = String(err && err.message || err).slice(0, 120)
+    if (HIST.err !== why) logLocal('숫자 칸 기록 못 씀(메모리 값 유지): ' + why)
+    HIST.err = why
+  }
+}
+function historyRecord(out) {
+  if (!OPT.historyFile) return null
+  try {
+    historyLoad()
+    HIST.val = historyPut(HIST.val, kstDay(Date.now()), kpiRowOf(out))
+    historyFlush(false)
+  } catch (err) { logLocal('숫자 칸 기록 실패: ' + String(err && err.message || err).slice(0, 120)) }
+  if (!HIST.val) return null
+  return hideWordsDeep(scrubDeep({ start: HIST.val.start, daily: HIST.val.daily }), OPT.hideWords)
 }
 
 // 설치 단계 «끝남»(setup.mjs) — 토큰 = env-status 낱말(set/missing)만 · 그 줄·경로는 응답에 0 · 부르기 실패 = 그 봇 null → 그 단계 unknown
@@ -832,6 +913,7 @@ async function main() {
   USAGE_TIMER = setInterval(pollUsage, OPT.usagePollMs)
   USAGE_TIMER.unref()
   if (OPT.followups) { refreshFollowups(); FOLLOW_TIMER = setInterval(refreshFollowups, OPT.followups.pollMs); FOLLOW_TIMER.unref() }
+  if (OPT.historyFile) { HISTORY_TIMER = setInterval(() => { if (!FATAL && !STOPPING && ST.cfg) jobsJson() }, OPT.historyMs); HISTORY_TIMER.unref() } // 보는 사람 없는 날도 그날 행
   for (const h of OPT.hosts) {
     const srv = http.createServer(handler)
     srv.requestTimeout = 10000

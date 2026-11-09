@@ -342,6 +342,44 @@ button.blink:hover{text-decoration-color:var(--ink-1)}
 .g-svg .dl.on-cell{stroke:var(--cell)}
 .g-svg .dstrip{fill:var(--bg);stroke:var(--line)}
 .g-svg .dst{font-size:14px;font-weight:600;fill:var(--ink-1)}
+/* 비교 그림(CCMod 없을 때 / 있을 때) = 가이드북 그림 1 «밖에서 켜기 vs 안에 켜 두기» 그림 말 그대로: 바깥 창고·꺼진 기계(점선)·켜진 기계/부품(굵은 테)·건물 굵은 벽·문틈·신호 알약·쪽지·먼 길/짧은 길 · 색 = 단색 토큰 */
+.g-cmpfig{margin:0;display:flex;flex-direction:column;gap:8px;min-width:0}
+.g-cmp{padding:24px;background:var(--cell);border-radius:8px;flex-direction:column;align-items:center;gap:20px;min-width:0}
+.g-cmp.g-wide{display:flex}
+.g-cmp .g-svg{max-width:1040px}
+.g-cmp.g-narrow .g-svg{max-width:330px}
+.g-svg .cw{fill:var(--bg)}
+.g-svg .cwl{fill:none;stroke:var(--ink-2);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.g-svg .cgh{fill:none;stroke:var(--line-strong);stroke-width:1.5;stroke-dasharray:5 5}
+.g-svg .coff{fill:var(--bg);stroke:var(--line-strong);stroke-width:1.5;stroke-dasharray:5 5}
+.g-svg .con{fill:var(--cell-strong);stroke:var(--ink-1);stroke-width:2}
+.g-svg .cdot{fill:var(--ink-1)}
+.g-svg .cring{fill:none;stroke:var(--ink-3);stroke-width:1.25}
+.g-svg .cb{fill:var(--bg)}
+.g-svg .cbw{fill:none;stroke:var(--ink-1);stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+.g-svg .cgr{fill:none;stroke:var(--ink-3);stroke-width:1.25}
+.g-svg .cpap{fill:var(--bg);stroke:var(--ink-2);stroke-width:1.25}
+.g-svg .car{fill:none;stroke:var(--ink-1);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.g-svg .csep{stroke:var(--line-strong);stroke-width:1.5;stroke-dasharray:4 6}
+.g-svg .ch{font-size:18px;font-weight:800;fill:var(--ink-1)}
+.g-svg .ct{font-size:15px;font-weight:700;fill:var(--ink-1)}
+.g-svg .cp{font-size:15px;font-weight:600;fill:var(--ink-1)}
+.g-svg .cs{font-size:14px;font-weight:500;fill:var(--ink-2)}
+.g-svg .cf{font-size:15px;font-weight:500;fill:var(--ink-1)}
+.g-narrow .g-svg .ch{font-size:16px}
+.g-narrow .g-svg .ct,.g-narrow .g-svg .cp{font-size:14px}
+.g-narrow .g-svg .cs,.g-narrow .g-svg .cf{font-size:13px}
+@media (min-width:601px) and (max-width:1279px){ /* 넓은 한 장을 줄이면 글자가 12px 밑(601=5.7px · 1024=11.4px 실측) → 폰용 두 칸을 나란히(좁으면 위아래로 접힘) */
+.g-cmp.g-wide{display:none}
+.g-cmp.g-narrow{display:flex;flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:flex-start}
+.g-card.g-has-img{grid-template-columns:minmax(0,1fr);gap:20px} /* 그림 520px 칸이 글 칸을 0px 로 밀던 것(1024 실측 4px · 700 = 0px) → 글 위 · 그림 아래 */
+.g-cmp.g-narrow .g-svg{width:330px;max-width:100%;margin:0}
+.g-dwrap.g-wide{display:none} /* 옛 흐름도(«한 번 더 자세히»)도 같은 까닭 · 1024 = 9.8px 실측 → 세로판 */
+.g-dwrap.g-narrow{display:flex;flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:flex-start}
+.g-dwrap.g-narrow .g-svg{width:330px;max-width:100%;margin:0}
+}
+.g-cmp-one{margin:0;font-size:16px;font-weight:700;line-height:1.6;color:var(--ink-1)}
+.g-closer{margin:8px 0 0;font-size:15px;font-weight:700;color:var(--ink-1)}
 .g-src{font-size:13px;font-weight:400}
 @media (max-width:600px){
 .g-why{padding:16px}
@@ -359,6 +397,8 @@ button.blink:hover{text-decoration-color:var(--ink-1)}
 .g-narrow{display:flex}
 .g-dwrap.g-wide{display:none}
 .g-dwrap{padding:16px 0;margin:0 -16px;border-radius:0}
+.g-cmp.g-wide{display:none}
+.g-cmp{padding:16px 0;margin:0 -16px;border-radius:0}
 .g-main{gap:36px}
 .g-card,.g-ready{padding:16px}
 .g-card,.g-card.g-has-img{grid-template-columns:minmax(0,1fr);gap:16px}
@@ -411,6 +451,40 @@ button.blink:hover{text-decoration-color:var(--ink-1)}
 .pg-restlist{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:15px}
 .pg-restbot{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .pg-note{margin:0}
+/* 11-09 다른 날 값 오버레이(봇 시안 hover.css 그대로 · 주인 «이대로 ㄱㄱ.») — 새 색 0 · 현황판 토큰만 */
+.bars[data-hv]{cursor:pointer;border-radius:2px}
+.bars[data-hv]:focus-visible,.hv-kpi:focus-visible,.hv-row:focus-visible{outline:var(--focus-box-w) solid var(--focus-box);outline-offset:var(--focus-box-gap);border-radius:var(--focus-box-radius)}
+.bars>span.hv-none{flex:1;height:0!important;align-self:flex-end;border-bottom:2px dotted var(--line-strong);border-radius:0}
+.bars>span.hv-on{outline:2px solid var(--ink-1);outline-offset:1px}
+.hv-kpi{cursor:pointer;border-radius:4px;white-space:nowrap}
+.hv-kpi:hover,.hv-kpi.hv-open,.hv-row:hover,.hv-row.hv-open{background:var(--cell-hover)}
+.hv-row{cursor:pointer;border-radius:4px}
+.hv-box{z-index:50;display:flex;flex-direction:column;gap:6px;padding:12px 14px;background:var(--bg);color:var(--ink-1);border:1px solid var(--line-strong);border-radius:8px;font-size:14px;line-height:1.5;word-break:keep-all;overflow-wrap:break-word}
+.hv-float{position:absolute;width:300px;max-width:calc(100vw - 32px);box-shadow:0 6px 24px rgba(20,20,19,.14)}
+.hv-week.hv-float{width:360px}
+.hv-inline{position:static;width:auto;margin:0}
+.hv-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.hv-date{font-weight:600}
+.hv-x{border:0;background:none;color:var(--ink-2);font-size:20px;line-height:1;padding:2px 6px;cursor:pointer;border-radius:4px}
+.hv-x:hover{background:var(--cell-hover)}
+.hv-big{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.hv-big b{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.hv-line{color:var(--ink-1)}
+.hv-hint{font-size:12px}
+.hv-cols{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;align-items:end}
+.hv-col{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.hv-n{font-size:12px;font-variant-numeric:tabular-nums;color:var(--ink-2);white-space:nowrap}
+.hv-bar{display:flex;align-items:flex-end;width:100%;height:46px;border-bottom:1px solid var(--chart-baseline)}
+.hv-bar i{display:block;width:100%;background:var(--chart-bar);border-radius:2px 2px 0 0}
+.hv-d{font-size:12px;color:var(--ink-3);white-space:nowrap}
+.hv-col.is-today .hv-bar i{background:var(--chart-bar-today)}
+.hv-col.is-today .hv-n,.hv-col.is-today .hv-d{color:var(--ink-1);font-weight:700}
+.hv-col.is-before .hv-bar{background:repeating-linear-gradient(135deg,transparent 0 4px,var(--line) 4px 6px)}
+.hv-col.is-before .hv-n,.hv-col.is-none .hv-n{font-size:11px;color:var(--ink-3)}
+.hv-col.is-none .hv-bar{border-bottom:2px dotted var(--line-strong)}
+@media (prefers-reduced-motion:no-preference){.hv-float{animation:hv-in var(--motion-feedback) var(--ease-out)}}
+@keyframes hv-in{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+
 </style>
 </head>
 <body>
@@ -1655,6 +1729,171 @@ function projGraphEl(G, o) {
         overB.length ? doneSw(VIEW.doneBots, '끝난 봇 ' + overB.length + '개 보기', function () { VIEW.doneBots = !VIEW.doneBots; }) : null) : null,
       D ? h('p', { className: 'meta pg-note' }, keep('읽는 법 — 줄 = 그 봇의 하위 세션이 그 프로젝트에서 일함 · 굵은 빨간 줄과 빨간 테두리 = 막힌 세션 있음 · ◷ 예약 = 세션이 걸어 둔 예약(루프) · «추정» = 본 세션 예약을 그 봇의 지금 프로젝트로 붙임 · 막힌 세션 = 게시판 상태 글(결정·막힘·끝) 중 마지막이 막힘이고 그 세션이 아직 살아 있는 것 — 기록으로 센 수라 말로만 풀린 막힘은 남을 수 있습니다 · 위 «막힘»(프로젝트 단계)과 14일 «막힘»(글 수)과는 다른 수입니다')) : null)));
 }
+/* ---------- 11-09 다른 날 값 오버레이(봇 시안 hover.js 그대로 · 주인 «이대로 ㄱㄱ.») ----------
+   꼴 두 가지:
+   ① 그래프 칸(14일 4칸) = 막대 하나에 올리면 그날 상자 · 네 칸의 같은 날 막대에 테두리(같은 날 맞춰 보기)
+   ② 숫자만 있는 칸(머리 숫자 줄 · 경고 «보고 없이 닫힌 일») = 올리면 최근 7일 작은 막대 + 날짜별 수 + 오늘 강조
+   자리 규칙: 넓은 화면 = 원래 칸 «아래»(아래 자리가 모자라면 «위») · 칸 자체는 안 가림 · 화면 가장자리 16px 안쪽
+              좁은 화면(600 이하) = 누르면 그 칸 바로 아래에 펼침(아래 내용을 밀어냄 · 가림 0)
+   누르면 고정(× 로 닫음) · Esc 닫음 · 키보드 = 칸에 초점 → ← → 로 날짜 이동
+   빈 날: 0 = «0건» / 기록 없음(null) = «셈 안 됨» 점선 막대 / 기록 시작 전 = «기록 전» 빗금 칸 */
+var HV = { key: null, i: null, pin: false };
+var HV_WD = ['일', '월', '화', '수', '목', '금', '토'];
+var HV_SER = {
+  done: { name: '하루 처리량', unit: '건', note: function (i) { var T = (RAW.ops || {}).total14 || {}, d = (T.done || [])[i], n = (T.noreport || [])[i]; if (d == null || n == null) return null; var all = d + n; return '보고 없이 닫힘 ' + n + '건' + (all ? ' (' + Math.round(n / all * 100) + '%)' : ''); } },
+  blocked: { name: '막힘', unit: '건', note: function () { return '게시판에 쓴 막힘 글 수로 센 추정치 · 프로젝트 단계 막힘과는 다른 수'; } },
+  started: { name: '새로 맡긴 일', unit: '건', note: function () { return null; } },
+  tokens: { name: '출력 토큰', unit: '', note: function () { return '끝난 날에 통째로 셈 — 오래 돈 세션은 끝난 날에 몰립니다'; } }
+};
+function hvDay(s) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || ''); if (!m) return ''; var wd = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])).getUTCDay(); return (+m[2]) + '월 ' + (+m[3]) + '일 (' + HV_WD[wd] + ')'; }
+function hvShort(s) { var m = /^\d{4}-(\d{2})-(\d{2})/.exec(s || ''); return m ? (+m[1]) + '/' + (+m[2]) : ''; }
+function hvVal(x, unit) { return x == null ? '셈 안 됨' : fmtNum(x) + unit; }
+function hvWide() { return document.documentElement.clientWidth > 600; }
+function hvClose() { HV.key = null; HV.i = null; HV.pin = false; hvPaint(); }
+/* ① 그날 상자 */
+function hvDayBox(key, i) {
+  var ops = RAW.ops || {}, days = ops.days || [], T = ops.total14 || {}, v = T[key] || [], S = HV_SER[key], last = days.length - 1;
+  var x = v[i], isToday = i === last;
+  var past = v.slice(0, last).filter(function (y) { return y != null; });
+  var avg = past.length ? Math.round(past.reduce(function (a, b) { return a + b; }, 0) / past.length) : null;
+  var cmp;
+  if (isToday) cmp = '하루가 끝나지 않아 평균과 견주지 않습니다';
+  else if (x == null) cmp = '이 날은 아직 셈하지 못했습니다 — 0건과 다릅니다';
+  else if (avg == null) cmp = null;
+  else { var d = x - avg; cmp = '지난 ' + past.length + '일 평균 ' + fmtNum(avg) + S.unit + (d === 0 ? '과 같음' : '보다 ' + fmtNum(Math.abs(d)) + S.unit + (d > 0 ? ' 많음' : ' 적음')); }
+  var note = S.note(i);
+  return h('div', { className: 'hv-box', role: 'dialog', 'aria-label': S.name + ' ' + hvDay(days[i]) },
+    h('div', { className: 'hv-head' }, h('span', { className: 'hv-date' }, hvDay(days[i]) + (isToday ? ' · 오늘' : '')), HV.pin ? h('button', { className: 'hv-x', type: 'button', 'aria-label': '닫기', onClick: function (e) { e.stopPropagation(); hvClose(); } }, '×') : null),
+    h('div', { className: 'hv-big' }, h('b', {}, hvVal(x, S.unit)), h('span', { className: 'meta' }, S.name + (isToday ? ' · 집계 중' : ''))),
+    cmp ? h('div', { className: 'hv-line' }, cmp) : null,
+    note ? h('div', { className: 'hv-line meta' }, note) : null,
+    hvWide() && !HV.pin ? h('div', { className: 'hv-hint meta' }, '눌러서 고정 · ← → 날짜 이동') : null);
+}
+/* ② 최근 7일 상자 */
+var HV_KPI = {
+  dec: { name: '내가 정할 것' }, blk: { name: '막힘(프로젝트 단계)' }, doing: { name: '진행' }, proj: { name: '프로젝트' }, cau: { name: '경고' },
+  noreport: { name: '보고 없이 닫힌 일', series: 'noreport' }
+};
+function hvWeek(key, todayVal) {
+  var ops = RAW.ops || {}, days = ops.days || [], K = HV_KPI[key], n = 7, cols = [];
+  var Hs = RAW.history || { start: null, daily: [] }, byDay = {};
+  (Hs.daily || []).forEach(function (r) { byDay[r.day] = r; });
+  var last = days.length - 1;
+  for (var k = n - 1; k >= 0; k--) {
+    var di = last - k, day = days[di], val, st;
+    if (K.series) { val = ((ops.total14 || {})[K.series] || [])[di]; st = val == null ? 'none' : 'ok'; }
+    else if (di === last) { val = todayVal; st = 'ok'; }
+    else if (byDay[day] && byDay[day][key] != null) { val = byDay[day][key]; st = 'ok'; }
+    else { val = null; st = 'before'; }
+    cols.push({ day: day, val: val, st: st, today: di === last });
+  }
+  var mx = Math.max.apply(null, [1].concat(cols.map(function (c) { return c.val || 0; })));
+  var before = cols.filter(function (c) { return c.st === 'before'; }).length;
+  return h('div', { className: 'hv-box hv-week', role: 'dialog', 'aria-label': K.name + ' 최근 7일' },
+    h('div', { className: 'hv-head' }, h('span', { className: 'hv-date' }, K.name + ' · 최근 7일'), HV.pin ? h('button', { className: 'hv-x', type: 'button', 'aria-label': '닫기', onClick: function (e) { e.stopPropagation(); hvClose(); } }, '×') : null),
+    h('div', { className: 'hv-cols' }, cols.map(function (c) {
+      return h('div', { className: 'hv-col' + (c.today ? ' is-today' : '') + (c.st !== 'ok' ? ' is-' + c.st : '') },
+        h('span', { className: 'hv-n' }, c.st === 'before' ? '기록 전' : c.st === 'none' ? '셈 안 됨' : fmtNum(c.val)),
+        h('span', { className: 'hv-bar' }, h('i', { style: { height: (c.st === 'ok' && c.val ? Math.max(3, c.val / mx * 44) : 0) + 'px' } })),
+        h('span', { className: 'hv-d' }, c.today ? '오늘' : hvShort(c.day)));
+    })),
+    before ? h('div', { className: 'hv-line meta' }, '지난 값은 ' + hvStartK(Hs.start) + '부터 하루 한 번 쌓입니다 · 지금은 오늘 값뿐') : null,
+    hvWide() && !HV.pin ? h('div', { className: 'hv-hint meta' }, '눌러서 고정') : null);
+}
+function hvStartK(s) { var m = /^\d{4}-(\d{2})-(\d{2})/.exec(s || ''); return m ? (+m[1]) + '월 ' + (+m[2]) + '일' : '내일'; }
+/* 그리기: 지금 HV 상태대로 상자 1개 + 같은 날 막대 테두리 */
+function hvPaint() {
+  document.querySelectorAll('.hv-box').forEach(function (b) { b.remove(); });
+  document.querySelectorAll('.bars>span.hv-on').forEach(function (b) { b.classList.remove('hv-on'); });
+  document.querySelectorAll('[data-hv-anchor].hv-open').forEach(function (b) { b.classList.remove('hv-open'); });
+  if (!HV.key) return;
+  var anchor = document.querySelector('[data-hv-anchor="' + HV.key + '"]');
+  if (!anchor) { HV.key = null; return; }
+  anchor.classList.add('hv-open');
+  var box;
+  if (HV_SER[HV.key]) {
+    document.querySelectorAll('.bars[data-hv]').forEach(function (bars) { var s = bars.children[HV.i]; if (s) s.classList.add('hv-on'); });
+    box = hvDayBox(HV.key, HV.i);
+  } else {
+    box = hvWeek(HV.key, +(anchor.getAttribute('data-hv-now') || 0));
+  }
+  if (!hvWide()) { /* 좁은 화면 = 칸 바로 아래 펼침(밀어냄 · 가림 0) */
+    box.classList.add('hv-inline');
+    var host = anchor.classList.contains('hv-kpi') ? anchor.parentNode : (anchor.closest('[data-hv-card]') || anchor);
+    host.parentNode.insertBefore(box, host.nextSibling);
+    return;
+  }
+  box.classList.add('hv-float');
+  document.body.appendChild(box);
+  var card = (anchor.closest('[data-hv-card]') || anchor).getBoundingClientRect();
+  var bw = box.offsetWidth, bh = box.offsetHeight, W = document.documentElement.clientWidth, Hh = window.innerHeight;
+  var cx = card.left + card.width / 2;
+  if (HV_SER[HV.key]) { var bars = anchor.querySelector('.bars'), s = bars && bars.children[HV.i]; if (s) { var r = s.getBoundingClientRect(); cx = r.left + r.width / 2; } }
+  var left = Math.max(16, Math.min(W - 16 - bw, cx - bw / 2));
+  var top = card.bottom + 8;
+  if (top + bh > Hh - 16 && card.top - 8 - bh >= 16) top = card.top - 8 - bh; /* 아래 자리가 모자라면 위 */
+  box.style.left = Math.round(left + window.scrollX) + 'px';
+  box.style.top = Math.round(top + window.scrollY) + 'px';
+}
+function hvSet(key, i, pin) { HV.key = key; HV.i = i; if (pin != null) HV.pin = pin; hvPaint(); }
+/* 연결: 렌더마다 다시 붙임(60초 다시 그리기 뒤에도 상태 유지) */
+function hvInit() {
+  /* ① 14일 4칸 */
+  document.querySelectorAll('.bars[data-hv]').forEach(function (bars) {
+    var key = bars.getAttribute('data-hv'), card = bars.closest('[data-hv-card]');
+    var n = bars.children.length, idx = function (ev) { var r = bars.getBoundingClientRect(); return Math.max(0, Math.min(n - 1, Math.floor((ev.clientX - r.left) / r.width * n))); };
+    bars.addEventListener('mousemove', function (ev) { if (!hvWide() || (HV.pin && HV.key)) return; var i = idx(ev); if (HV.key !== key || HV.i !== i) hvSet(key, i); });
+    card.addEventListener('mouseleave', function () { if (hvWide() && !HV.pin && HV.key === key) hvClose(); });
+    bars.addEventListener('click', function (ev) { var i = idx(ev); if (HV.pin && HV.key === key && HV.i === i) hvClose(); else hvSet(key, i, true); });
+    bars.addEventListener('focus', function () { if (HV.key !== key) hvSet(key, n - 1, false); }); /* 다른 칸으로 옮기면 고정 풀림 */
+    bars.addEventListener('keydown', function (ev) {
+      if (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') { ev.preventDefault(); var i = HV.key === key ? HV.i : n - 1; i = Math.max(0, Math.min(n - 1, i + (ev.key === 'ArrowLeft' ? -1 : 1))); hvSet(key, i); }
+      else if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); hvSet(key, HV.key === key ? HV.i : n - 1, !HV.pin); }
+    });
+  });
+  /* ② 숫자 칸 */
+  document.querySelectorAll('[data-hv-anchor]:not([data-hv-anchor-bars])').forEach(function (el) {
+    var key = el.getAttribute('data-hv-anchor');
+    if (HV_SER[key]) return;
+    el.addEventListener('mouseenter', function () { if (hvWide() && !(HV.pin && HV.key)) hvSet(key, null); });
+    el.addEventListener('mouseleave', function () { if (hvWide() && !HV.pin && HV.key === key) hvClose(); });
+    el.addEventListener('click', function (ev) { ev.stopPropagation(); if (HV.pin && HV.key === key) hvClose(); else hvSet(key, null, true); });
+    el.addEventListener('focus', function () { if (HV.key !== key) hvSet(key, null, false); });
+    el.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); hvSet(key, null, !HV.pin); } });
+  });
+  hvPaint();
+}
+/* 머리 숫자 줄·경고 줄에 자리 표시(렌더 뒤 1회) */
+function hvMark() {
+  var hp = document.querySelector('#board header p');
+  if (hp) {
+    var keys = ['dec', 'blk', 'doing', 'proj', 'cau'];
+    hp.querySelectorAll('b.strong').forEach(function (b, k) {
+      if (!keys[k]) return;
+      if (b.parentNode && b.parentNode.classList && b.parentNode.classList.contains('hv-kpi')) return; /* 이미 감쌈(hvMark 두 번 불림) */
+      var prev = b.previousSibling, wrap = h('span', { className: 'hv-kpi', tabindex: '0', role: 'button', 'data-hv-anchor': keys[k], 'data-hv-card': '', 'data-hv-now': b.textContent.replace(/[^\d]/g, '') });
+      b.parentNode.insertBefore(wrap, b);
+      /* 11-09 봇 라이브 검수 5번: 앞 글의 구분점 «(NBSP|띄움)· »은 span 밖에 둠 — span 은 nowrap 이라 점까지 넣으면 폰에서 줄이 «·»로 시작하고
+         올림 강조도 점까지 칠함. 이름만 span 안 · 점만 있는 마디 = 아무것도 안 넣음 */
+      if (prev && prev.nodeType === 3) {
+        var cut = (/^[\s\u00a0]*·\s/.exec(prev.data) || [''])[0].length;
+        if (!cut) wrap.appendChild(prev);
+        else if (cut < prev.data.length) wrap.appendChild(prev.splitText(cut));
+      }
+      wrap.appendChild(b);
+    });
+  }
+  document.querySelectorAll('[data-col="blocked"] span.strong').forEach(function (el) {
+    if (el.textContent !== '보고 없이 닫힌 일') return;
+    var row = el.parentNode && el.parentNode.parentNode && el.parentNode.parentNode.parentNode; /* rowEl = div > span > span > span.strong */
+    if (!row || row.hasAttribute('data-hv-anchor')) return;
+    row.setAttribute('data-hv-anchor', 'noreport'); row.setAttribute('data-hv-card', ''); row.setAttribute('tabindex', '0'); row.setAttribute('role', 'button'); row.classList.add('hv-row');
+  });
+}
+document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && HV.key) hvClose(); });
+document.addEventListener('click', function (ev) { if (HV.pin && HV.key && !ev.target.closest('.hv-box,[data-hv-anchor],.bars[data-hv]')) hvClose(); });
+window.addEventListener('resize', function () { if (HV.key) hvPaint(); });
+
 function renderBoard(o) {
   var G = geom(), anim0 = o.animate && !still();
   var root = document.getElementById('board'); clear(root);
@@ -1772,9 +2011,9 @@ function renderBoard(o) {
       h('div', { style: { display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '6px 10px' } }, h('h2', { style: { margin: 0, fontSize: 18, fontWeight: 600, lineHeight: 1.4 } }, '14일'), h('span', { className: 'meta' }, dK(days[0]) + ' – ' + dK(days[days.length - 1]))),
       h('div', { style: { display: 'grid', gridTemplateColumns: G.wide ? 'repeat(4, minmax(0, 1fr))' : 'minmax(0, 1fr)', gap: 16 } }, SER.map(function (s, j) {
         var v = Array.isArray(T14[s[1]]) ? T14[s[1]] : null, mx = v ? Math.max.apply(null, [1].concat(v)) : 1, today = v ? v[v.length - 1] : null;
-        return h('div', { style: { display: 'flex', flexDirection: 'column', gap: 10, padding: 16, background: 'var(--cell)', borderRadius: 8, minWidth: 0 } },
+        return h('div', { 'data-hv-card': '', 'data-hv-anchor': s[1], 'data-hv-anchor-bars': '', style: { display: 'flex', flexDirection: 'column', gap: 10, padding: 16, background: 'var(--cell)', borderRadius: 8, minWidth: 0 } },
           h('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 } }, h('span', { className: 'meta' }, s[0]), h('span', { style: { display: 'inline-flex', alignItems: 'baseline', gap: 4, whiteSpace: 'nowrap' } }, h('b', { style: { fontSize: 18, fontWeight: 600 } }, today == null ? '기록 없음' : fmtNum(today) + s[2]), today == null ? null : h('span', { className: 'meta' }, '오늘'))),
-          h('div', { className: 'bars', role: 'img', 'aria-label': s[0] + ' 14일 — ' + (v ? v.map(fmtNum).join(', ') : '기록 없음') }, (v || []).map(function (x, i) { return h('span', { className: anim0 ? 'sm-grow-y' : '', style: { height: (x ? Math.max(3, x / mx * 54) : 0) + 'px', background: i === v.length - 1 ? 'var(--chart-bar-today)' : 'var(--chart-bar)', animationDelay: (j * 90 + i * 20) + 'ms' } }); })),
+          h('div', { className: 'bars', 'data-hv': s[1], tabindex: '0', role: 'img', 'aria-label': s[0] + ' 14일 — ' + (v ? v.map(function (y) { return y == null ? '셈 안 됨' : fmtNum(y); }).join(', ') : '기록 없음') + ' · 막대에 올리거나 눌러 그날 값' }, (v || []).map(function (x, i) { return h('span', { className: (x == null ? 'hv-none ' : '') + (anim0 ? 'sm-grow-y' : ''), style: { height: (x ? Math.max(3, x / mx * 54) : 0) + 'px', background: i === v.length - 1 ? 'var(--chart-bar-today)' : 'var(--chart-bar)', animationDelay: (j * 90 + i * 20) + 'ms' } }); })),
           h('div', { className: 'meta', style: { display: 'flex', justifyContent: 'space-between' } }, h('span', {}, dK(days[0])), h('span', {}, dK(days[days.length - 1]))));
       }))));
   }
@@ -1789,6 +2028,7 @@ function renderBoard(o) {
         })))));
   if (anim0) countUp(nums);
   warmText();
+  hvMark(); hvInit(); /* 11-09 다른 날 값 오버레이 */
 }
 /* 회의 결정 후속 칸(11-09 주인 물음 «회의 결정 뒤 일이 재시작 뒤에도 진행되나?»): 서버 followups = 닫힌 회의 방(03 결과 문서 · 최근 N일) × 그 방을 출처로 한
    대장 할 일 · 열린 일 = 마지막 기록 뒤 몇 시간 · 24시간+ = 노랑 경고 · 닫힌 일·남은 일 없는 회의 = 접힘(스위치) · 설정에 대장 읽기 명령이 없으면 칸 없음 */
@@ -2462,7 +2702,7 @@ var G_EN = {
   s15: { name: 'Resume window (if you put items off)', short: 'Resume', whoText: 'You pick', line: '"Open now / later". If you open it, it asks only the items you put off, in that bot\'s folder.', cap: '"Open now" or "later".' },
   's9-2': { name: 'Turn on the web board (if you choose)', short: 'Web board', whoText: 'You pick', line: 'When the install has finished and a bot exists, it asks whether to turn on a web board you view in this computer\'s browser. It opens only on this computer, and the default is "later". Get the first address in a new terminal and paste it into the browser.', more: 'The board\'s work graph comes from project rooms. Make a room with slackmod room new (the wizard does not make one for you).' },
   s16: { name: 'Closing message · how to undo', short: 'Closing message', whoText: 'Automatic', line: 'Tells you what was installed, the check summary, what to do next, and one line on undoing.', cap: 'The undo part.', tag: 'Older screen' },
-  s17: { name: 'Commands after install', short: 'After-install commands', whoText: 'You', line: 'See status · start after a reboot (bots do not start by themselves) · change thinking depth.', cap: 'Status table — off until tokens are added.' },
+  s17: { name: 'Commands after install', short: 'After-install commands', whoText: 'You', line: 'See status · change thinking depth · start after a reboot (bots do not start by themselves).', cap: 'Status table — off until tokens are added.' },
   s18: { name: 'Undo', whoText: 'You', line: 'Preview first, then run after checking. It undoes only the latest install, stops if you edited any file by hand, and leaves the Slack tokens alone.', cap: 'Last line of the preview.' },
   b1: { title: 'It says something is missing', todo: 'The basics check shows what is missing and the line to install it, all at once. Paste that line as it is, then run the installer again. The installer installs nothing by itself.' },
   b2: { title: 'I started in the Windows command prompt', todo: 'Bots run in Linux inside Windows (WSL · Ubuntu). Open Ubuntu from the Start menu and run it again in there.' },
@@ -2609,7 +2849,7 @@ var G_DIA = {
     gen: {
       ko: {
         zA: 'Claude Code 안', zB: 'Claude Code 밖',
-        ai: ['AI 가 도구를', '쓰려 함'], gate: ['① CCMod 관문', '대화를 보고 판단'], old: ['② 예전 훅', '(설정 훅)'], run: ['도구 실행'],
+        ai: ['AI 가 도구를', '쓰려 함'], gate: ['① CCMod 관문', '대화를 넘겨 판정'], old: ['② 예전 훅', '(설정 훅)'], run: ['도구 실행'],
         stop: ['막기'], tools: ['CCMod 도구', '새 창 열기 · 보고하기', '따로 도는 서버 없음'],
         rule: ['규칙 검사 프로그램', '공개판 = 모두 통과 자리'], mcp: ['MCP 서버', '따로 도는 프로그램'], stopx: ['도구 안 돎'], stopxn: ['도구 안 돎'],
         pass: ['통과'], rewrite: ['고쳐 쓰기'], answer: ['대신 답'], call: ['도구를 쓸 때마다 부름'], conn: ['MCP 도구면', '그 서버가 처리'],
@@ -2617,7 +2857,7 @@ var G_DIA = {
       },
       en: {
         zA: 'Inside Claude Code', zB: 'Outside Claude Code',
-        ai: ['AI is about', 'to use a tool'], gate: ['① CCMod gate', 'decides with', 'the conversation in view'], old: ['② older hook', '(settings hook)'], run: ['tool runs'],
+        ai: ['AI is about', 'to use a tool'], gate: ['① CCMod gate', 'passes the conversation', 'on for a verdict'], old: ['② older hook', '(settings hook)'], run: ['tool runs'],
         stop: ['stop'], tools: ['CCMod tools', 'open window · report', 'no separate server'],
         rule: ['rule-check program', 'public kit = allow-all slot'], mcp: ['MCP server', 'a separate program'], stopx: ['tool does not run'], stopxn: ['tool does', 'not run'],
         pass: ['go ahead'], rewrite: ['rewrite'], answer: ['answer instead'], call: ['called on every tool use'], conn: ['an MCP tool is', 'handled by its server'],
@@ -2780,7 +3020,7 @@ var G_DIA = {
 function gRich(s) { /* `코드` → 고정폭 span(줄 안 끊김 · 줄바꿈 검사기가 <code> 를 건너뛰어 봇 시안과 같은 span) · 바로 뒤 조사(띄어 쓴 것 포함)·문장부호는 코드와 한 덩이 */
   var parts = String(s).split('`'), out = [];
   for (var i = 0; i < parts.length; i++) {
-    if (i % 2 === 0) { out.push(gnb(parts[i])); continue; }
+    if (i % 2 === 0) { gnb(parts[i]).split('mod-for-slack').forEach(function (t, j) { if (j) out.push(h('span', { className: 'g-nw' }, 'mod-for-slack')); if (t) out.push(t); }); continue; } /* 제품 이름 = 한 덩이(«mod- / for-slack» 끊김 0 · 글자는 보통 하이픈 그대로라 복사·검색 같음) */
     var m = /^((?:\s?(?:은|는|이|가|을|를|의|에서|에게|에|으로|로|와|과|도|만|보다|이고|이나|입니다|등)(?=[\s.,:;)·]|$))?[.,:;)]*)/.exec(parts[i + 1] || ''), tail = m ? m[1] : '';
     if (tail) parts[i + 1] = parts[i + 1].slice(tail.length);
     out.push(h('span', { className: 'g-nw' }, h('span', { className: 'g-code' }, parts[i]), tail ? tail.replace(/^\s/, '\u00a0') : null));
@@ -2842,16 +3082,119 @@ function gEditionBar() {
     grp(gT('audAria'), [['gen', gT('gen')], ['dev', gT('dev')]], function (v) { return v === G_AUD; }, function (v) { return G_LANG + '|' + v; }));
 }
 function gList(g) { return h('div', { className: 'g-pgrp' }, h('h3', { className: 'g-h4' }, gRich(g.h)), g.p ? h('p', { className: 'g-p' }, gRich(g.p)) : null, h('ul', { className: 'g-ul' }, g.items.map(function (x) { return h('li', {}, gRich(x)); }))); }
+/* 비교 그림 «CCMod 없을 때 / 있을 때» — 가이드북 그림 1(밖에서 켜기 vs 안에 켜 두기)의 배치·색·화살표 길이를 빌림
+   두 칸 = 같은 뼈대(창고 자리·건물·신호 알약 자리 같음) · 없을 때 = 문틈으로 창고까지 나갔다 쪽지 들고 돌아옴(먼 길) · 있을 때 = 창고 자리는 빈 점선, 건물 안 켜진 부품까지 짧은 길
+   넓은 = 한 장에 나란히(G.w) · 좁은(≤600) = 칸마다 한 장, 위아래(G.n) · 그림 파일 0 · 글자 = 화면 글자 */
+var G_CMP = {
+  G: {
+    w: { W: 500, gap: 40, head: [250, 30], footY: 340, footLh: 20, footPad: 18,
+      wh: { cx: 86, titleY: 96, body: 'M12,148 L86,116 L160,148 V310 H12 Z', roof: 'M6,151 L86,116 L166,151', walls: 'M12,150 V310 M160,150 V160 M160,200 V310', ghost: 'M12,310 V148 L86,116 L160,148 V310', ghostT: [86, 222], ghostLh: 20 },
+      mach: { xs: [28, 70, 112], y: 250, w: 32, h: 46, dot: [16, 13, 4], lit: 1 },
+      bld: { x: 192, y: 64, w: 296, h: 246, title: [340, 92], wallsOut: 'M192,310 V200 M192,160 V64 H488 V310', wallsIn: 'M192,310 V64 H488 V310' },
+      ground: 'M4,310 H496',
+      pill: { x: 212, y: 156, w: 210, h: 40 },
+      out: 'M212,168 H82 V243', back: 'M94,244 V186 H205',
+      paper: { x: 168, y: 176, w: 18, h: 22, lines: 'M171,183 H183 M171,189 H180' },
+      far: [214, 138], mod: { x: 300, y: 236, w: 140, h: 50, tx: 357, ring: [422, 252, 9, 4.5] }, short: 'M357,196 V229', near: [341, 214], on: [370, 300] },
+    n: { W: 330, gap: 0, head: [165, 20], footY: 276, footLh: 18, footPad: 16,
+      wh: { cx: 55, titleY: 64, body: 'M8,106 L55,82 L102,106 V250 H8 Z', roof: 'M4,108 L55,82 L106,108', walls: 'M8,108 V250 M102,108 V120 M102,158 V250', ghost: 'M8,250 V106 L55,82 L102,106 V250', ghostT: [55, 162], ghostLh: 18 },
+      mach: { xs: [16, 44, 72], y: 206, w: 20, h: 34, dot: [10, 9, 3], lit: 1 },
+      bld: { x: 124, y: 44, w: 198, h: 206, title: [223, 66], wallsOut: 'M124,250 V158 M124,120 V44 H322 V250', wallsIn: 'M124,250 V44 H322 V250' },
+      ground: 'M2,250 H328',
+      pill: { x: 136, y: 118, w: 174, h: 36 },
+      out: 'M136,127 H50 V199', back: 'M58,200 V145 H129',
+      paper: { x: 107, y: 137, w: 12, h: 16, lines: 'M109.5,142 H116.5 M109.5,147 H114.5' },
+      far: [136, 100], mod: { x: 180, y: 190, w: 130, h: 36, tx: 234, ring: [296, 200, 6, 3] }, short: 'M234,154 V183', near: [219, 169], on: [245, 237] }
+  },
+  L: {
+    gen: {
+      ko: { h1: 'CCMod 없을 때', h2: 'CCMod 있을 때', out: 'Claude Code 밖', ghost: ['기본엔 밖에', '켤 것 없음'], bld: 'Claude Code',
+        pill1: 'AI 가 도구를 쓰려 함', pill2: 'AI 가 도구를 쓰려 함', far: '먼 길', near: '짧은 길', mod: 'CCMod', on: '늘 켜져 있음',
+        foot1: ['부를 때마다 밖에서 프로그램을 켜고', '답을 받아 온 뒤 다시 끕니다'], foot2: ['안에 늘 켜져 있는 CCMod 가', '그 자리에서 판정합니다'],
+        one: 'CCMod 는 Claude Code 안에 늘 켜져 있는 부품입니다.',
+        cap: 'AI 가 도구를 쓰기 직전의 검사라는 같은 일을 두 방식으로 견줘 그렸습니다. 오른쪽이 CCMod 의 기본 꼴입니다. mod-for-slack 은 여기에 더해 도구를 쓸 때마다 규칙 검사 프로그램을 밖에서 한 번 부릅니다. 이 부름은 안에 켜진 CCMod 가 내가 설정해 둔 훅보다 먼저 하고, 그때 지금까지의 대화도 검사 프로그램에 함께 넘깁니다. 선 길이는 거쳐 가는 자리를 보여 줄 뿐이고, 더 빠르다는 뜻이 아닙니다.',
+        closer: '한 번 더 자세히 — 도구를 한 번 쓸 때 지나는 길' },
+      en: { h1: 'Without a CCMod', h2: 'With a CCMod', out: 'Outside', ghost: ['Basic shape:', 'nothing', 'outside'], bld: 'Claude Code',
+        pill1: 'AI wants to use a tool', pill2: 'AI wants to use a tool', far: 'long way', near: 'short way', mod: 'CCMod', on: 'always on',
+        foot1: ['Each time, a program starts outside,', 'hands back an answer, and stops'], foot2: ['The CCMod, always on inside,', 'decides it right there'],
+        one: 'A CCMod is a part that stays switched on inside Claude Code.',
+        cap: 'The same job, the check right before the AI uses a tool, drawn both ways. The right side is the basic CCMod shape. On top of that, mod-for-slack calls a rule-check program outside once each time a tool is used. The CCMod inside makes that call before the hooks you set in your own settings, and hands the program the conversation so far. Line length shows the places passed and does not mean faster.',
+        closer: 'A closer look — the path of one tool call' }
+    },
+    dev: {
+      ko: { h1: 'CCMod 없을 때 — command 훅', h2: 'CCMod 있을 때 — mod 훅', out: '프로세스 밖', ghost: ['기본:', '밖에 띄울', '프로세스 없음'], bld: 'Claude Code 프로세스',
+        pill1: '`PreToolUse` 이벤트', pill2: '`tool.call` 이벤트', far: '프로세스 밖 왕복', near: '함수 호출', mod: 'mod 함수', on: '세션 시작 때 실림',
+        foot1: ['`command` 훅 = 이벤트마다 새 프로세스', '`stdin` 으로 받고 종료 코드·`stdout` 으로 답'], foot2: ['같은 프로세스 안에서 함수로 부름', '`next` · `{deny}` · `{result}`'],
+        one: 'mod 는 Claude Code 가 자기 프로세스 안에서 부르는 플러그인 함수입니다(공식 정의).',
+        cap: '도구 호출 직전 검사라는 같은 일을 두 방식으로 그렸습니다. 오른쪽이 mod 의 기본 꼴입니다. mod-for-slack 은 여기에 더해 `src/hooks-port` 관문이 도구 호출마다 `$.process.run` 으로 파이썬 실행기를 부릅니다. 그 부름은 mod 의 `tool.call` 안, 곧 사용자·프로젝트 설정 `PreToolUse` 보다 앞에서 일어나고 세션 대화를 입력으로 받습니다. 조직 관리 설정의 `PreToolUse` 만 mod 보다 먼저 돕니다. 선 길이는 거치는 자리 수이고 지연 수치가 아닙니다. 아래 «과장하지 않을 것»을 보세요.',
+        closer: '한 번 더 자세히 — 도구 호출 한 번의 흐름' },
+      en: { h1: 'Without a CCMod — command hook', h2: 'With a CCMod — mod hook', out: 'Outside', ghost: ['Basic shape:', 'no process', 'outside'], bld: 'Claude Code process',
+        pill1: '`PreToolUse` event', pill2: '`tool.call` event', far: 'round trip out', near: 'function call', mod: 'mod function', on: 'loaded at session start',
+        foot1: ['A `command` hook = a new process per event,', 'input on `stdin`, answer by exit code or `stdout`'], foot2: ['A function call in the same process', '`next` · `{deny}` · `{result}`'],
+        one: 'A mod is a set of plugin functions that Claude Code calls in its own process. This is the official definition.',
+        cap: 'The same job, the check right before a tool call, drawn both ways. The right side is the basic mod shape. On top of that, the mod-for-slack gate in `src/hooks-port` runs the Python runner through `$.process.run` on every tool call. That call happens inside the mod\'s `tool.call` handler, before the `PreToolUse` hooks in user and project settings, and takes the session transcript as input. `PreToolUse` hooks from managed settings still run first. Line length is the number of places passed, not a latency figure. See "What we do not claim" below.',
+        closer: 'A closer look — the flow of one tool call' }
+    }
+  }
+};
+function gCmpSvg(G, sides, uid) { /* sides = ['without','with'] (넓은) 또는 한 칸씩(좁은) · 두 칸 뼈대 같음 */
+  var NS = 'http://www.w3.org/2000/svg', L = G_CMP.L[G_AUD][G_LANG];
+  var el = function (n, a, kids) { var e = document.createElementNS(NS, n); for (var k in a) if (a[k] != null) e.setAttribute(k, a[k]); (kids || []).forEach(function (c) { if (c) e.appendChild(c); }); return e; };
+  var tx = function (s, x, y, cls, anchor) { var t = el('text', { x: x, y: y, 'class': cls, 'text-anchor': anchor || 'middle', 'dominant-baseline': 'central' }); String(s).split('`').forEach(function (seg, i) { if (!seg) return; var sp = el('tspan', i % 2 ? { 'class': 'dc' } : {}); sp.textContent = seg; t.appendChild(sp); }); return t; };
+  var flat = function (v) { return (Array.isArray(v) ? v.join(' ') : String(v)).replace(/`/g, ''); };
+  var nF = Math.max(L.foot1.length, L.foot2.length), vbw = sides.length * G.W + (sides.length - 1) * G.gap, vbh = G.footY + (nF - 1) * G.footLh + G.footPad;
+  var said = sides.map(function (s) { return s === 'with' ? [L.h2, L.bld, L.pill2, L.near, L.mod, L.on, L.foot2] : [L.h1, L.out, L.bld, L.pill1, L.far, L.foot1]; });
+  var svg = el('svg', { viewBox: '0 0 ' + vbw + ' ' + vbh, 'class': 'g-svg', role: 'img', 'aria-label': said.map(function (a) { return a.map(flat).join(' · '); }).join(' — ') });
+  svg.appendChild(el('defs', {}, [el('marker', { id: uid + 'k', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, [el('path', { d: 'M0,0 L10,5 L0,10 z', 'class': 'ah-k' })])]));
+  var mk = 'url(#' + uid + 'k)';
+  sides.forEach(function (side, i) {
+    var on = side === 'with', g = el('g', { transform: 'translate(' + (i * (G.W + G.gap)) + ',0)', 'data-side': side }), add = function (e) { g.appendChild(e); return e; };
+    var wh = G.wh, b = G.bld, p = G.pill, m = G.mod, M = G.mach;
+    add(tx(on ? L.h2 : L.h1, G.head[0], G.head[1], 'ch'));
+    if (!on) { /* 바깥 창고 + 꺼진 기계 셋(가운데 하나 = 불려서 켜짐) */
+      add(el('path', { d: wh.body, 'class': 'cw' })); add(el('path', { d: wh.roof, 'class': 'cwl' })); add(el('path', { d: wh.walls, 'class': 'cwl' }));
+      add(tx(L.out, wh.cx, wh.titleY, 'ct'));
+      M.xs.forEach(function (x, j) { var lit = j === M.lit; add(el('rect', { x: x, y: M.y, width: M.w, height: M.h, rx: 3, 'class': lit ? 'con' : 'coff' })); add(el('circle', { cx: x + M.dot[0], cy: M.y + M.dot[1], r: M.dot[2], 'class': lit ? 'cdot' : 'cring' })); });
+    } else { /* 창고 자리 = 빈 점선(밖에 켤 것 없음) */
+      add(el('path', { d: wh.ghost, 'class': 'cgh', 'data-c': 'ghost' }));
+      L.ghost.forEach(function (s, j) { var gt = tx(s, wh.ghostT[0], wh.ghostT[1] + j * wh.ghostLh, 'cs'); gt.setAttribute('data-c', 'ghost-t'); add(gt); });
+    }
+    add(el('rect', { x: b.x, y: b.y, width: b.w, height: b.h, 'class': 'cb' })); add(el('path', { d: on ? b.wallsIn : b.wallsOut, 'class': 'cbw' }));
+    add(tx(L.bld, b.title[0], b.title[1], 'ct'));
+    add(el('path', { d: G.ground, 'class': 'cgr' }));
+    add(el('rect', { x: p.x, y: p.y, width: p.w, height: p.h, rx: p.h / 2, 'class': 'con' })); add(tx(on ? L.pill2 : L.pill1, p.x + p.w / 2, p.y + p.h / 2, 'cp'));
+    if (!on) { /* 먼 길: 문틈으로 나가 기계를 켜고, 쪽지를 들고 돌아옴 */
+      add(el('path', { d: G.out, 'class': 'car', 'marker-end': mk, 'data-c': 'path' })); add(el('path', { d: G.back, 'class': 'car', 'marker-end': mk, 'data-c': 'path' }));
+      var pp = G.paper; add(el('rect', { x: pp.x, y: pp.y, width: pp.w, height: pp.h, rx: 2, 'class': 'cpap' })); add(el('path', { d: pp.lines, 'class': 'cring' }));
+      add(tx(L.far, G.far[0], G.far[1], 'cs', 'start'));
+    } else { /* 짧은 길: 건물 안 켜진 부품까지 */
+      add(el('rect', { x: m.x, y: m.y, width: m.w, height: m.h, rx: 4, 'class': 'con' })); add(tx(L.mod, m.tx, m.y + m.h / 2, 'ct'));
+      add(el('circle', { cx: m.ring[0], cy: m.ring[1], r: m.ring[2], 'class': 'cring' })); add(el('circle', { cx: m.ring[0], cy: m.ring[1], r: m.ring[3], 'class': 'cdot' }));
+      add(el('path', { d: G.short, 'class': 'car', 'marker-end': mk, 'data-c': 'path' }));
+      add(tx(L.near, G.near[0], G.near[1], 'cs', 'end')); add(tx(L.on, G.on[0], G.on[1], 'cs'));
+    }
+    (on ? L.foot2 : L.foot1).forEach(function (s, j) { add(tx(s, G.W / 2, G.footY + j * G.footLh, 'cf')); });
+    svg.appendChild(g);
+  });
+  if (sides.length === 2) svg.appendChild(el('line', { x1: G.W + G.gap / 2, y1: 12, x2: G.W + G.gap / 2, y2: vbh - 12, 'class': 'csep' }));
+  return svg;
+}
+function gCmp(narrow) {
+  return h('div', { className: 'g-cmp' + (narrow ? ' g-narrow' : ' g-wide'), 'data-g': 'cmp-' + (narrow ? 'n' : 'w') },
+    narrow ? [gCmpSvg(G_CMP.G.n, ['without'], 'g-cn1-'), gCmpSvg(G_CMP.G.n, ['with'], 'g-cn2-')] : [gCmpSvg(G_CMP.G.w, ['without', 'with'], 'g-cw-')]);
+}
 function principleSection() {
-  var P = G_PRIN[G_LANG][G_AUD], dev = G_AUD === 'dev';
+  var P = G_PRIN[G_LANG][G_AUD], dev = G_AUD === 'dev', C = G_CMP.L[G_AUD][G_LANG];
   return h('section', { 'aria-label': gT('prinAria'), 'data-g': 'principle', 'data-ed': G_LANG + '|' + G_AUD, className: 'g-why g-prin' },
     h('h2', { className: 'g-h3' }, P.title),
     P.intro.map(function (p) { return h('p', { className: 'g-p' }, gRich(p)); }),
+    h('figure', { className: 'g-cmpfig', 'data-g': 'cmp' }, gCmp(false), gCmp(true), h('p', { className: 'g-cmp-one' }, gRich(C.one)), h('figcaption', { className: 'g-cap' }, gRich(C.cap))),
     h('table', { className: 'g-wtab' },
       h('thead', {}, h('tr', {}, P.table.head.map(function (x) { return h('th', { scope: 'col' }, x); }))),
       h('tbody', {}, P.table.rows.map(function (r) { return h('tr', {}, r.map(function (c, i) { return h('td', {}, h('span', { className: 'g-wl', 'aria-hidden': 'true' }, P.table.head[i]), h('span', {}, gRich(c))); })); }))),
     (P.mid || []).map(function (p) { return h('p', { className: 'g-p' }, gRich(p)); }),
     dev ? P.groups.map(gList) : null,
+    h('h3', { className: 'g-closer', 'data-g': 'closer' }, C.closer),
     h('figure', { className: 'g-dfig' }, gDiagram(false), gDiagram(true), h('figcaption', { className: 'g-cap' }, gT('diaCap'))),
     (dev ? P.after : P.groups).map(gList),
     h('p', { className: 'g-p meta' }, gT('srcH') + ' — ', G_SRC.map(function (s, i) { return [i ? ' · ' : '', h('a', { href: s[1], target: '_blank', rel: 'noopener noreferrer', className: 'g-la g-src' }, 'Claude Code mods ' + s[0])]; })));

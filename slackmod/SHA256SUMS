@@ -1,4 +1,4 @@
-07dcf9daa500b7028060bf94637eebac5935f209d7f6fd77eb7b6a3f99d0dc6b  ./MANIFEST.txt
+b21421ed6b99159ffc9179c5cd3ee78e7a1b57ff974a01932a96e678777cb0c0  ./MANIFEST.txt
 ce25bd371bdeba5a25fc90a9ee8d503b15a167d79391951bc2a6deb9e65427d1  ./README.md
 77ee8f736d2f111289d221279baf442491ebf1642b4b3a13e9087878e67dc0ea  ./app/channel-server/.env.example
 f39ced4bda4411117d2721ef2e35e23e065e7da6b65c2bab234facae8908abc1  ./app/channel-server/BRIDGE-SOURCE.txt
@@ -158,11 +158,11 @@ f8146b9b169862d3f8f80bf7bb65a5d1c2f2b2bb7cddd6a1e0f6f3ce0dc90f2f  ./app/mods-har
 802e1cc101a386114f7ba02f8a4b6717de91bff34034951cb94ba09ff6ba8bf1  ./app/mods-harness/src/ui/lib/tree.js
 08f61b890805628940c17285e6ad35a821bd019677e88ba2eb101bfd15813fc9  ./app/mods-harness/src/ui/lib/usage.js
 bfdafc4311945489343441e2229f0f6de04ab749d6188ca333d996b21c74e5d8  ./app/mods-harness/tools/web-board/handler.mjs
-815ad7880edec8ad0534cffd254e731076f5bc92f807b7473eaf87ed8096029a  ./app/mods-harness/tools/web-board/jobs.html
-a94a1e4fba29c4ee7ae9f3de22eaeea80f7e2614aeccea765872e3da1290fc62  ./app/mods-harness/tools/web-board/jobs.mjs
-277dac2d856ceaf8bc6c3f8ea9d3dd58bf5a3d6906f5708c9e0f114ff76cf5b4  ./app/mods-harness/tools/web-board/lib.mjs
+06d17bd6f4d5571ff88cea100fb31c2171cf8fbafa77d55a6dd026fe2a79e68a  ./app/mods-harness/tools/web-board/jobs.html
+625a522622f88ba23a4ed19772ec601609ad198a9a2e133d39ac09cb827e9211  ./app/mods-harness/tools/web-board/jobs.mjs
+865c8c7e95ca1dfb8ed33521b14559ff3ccbfb7a396b8300ceae5aac070d2c86  ./app/mods-harness/tools/web-board/lib.mjs
 0f13da102d1179a47bfdae3e27240ffbd5870096a175e71a4a01e2eaf39e90ec  ./app/mods-harness/tools/web-board/page.html
-fa8957434b12d12a280160367b93b9e1d3c0fbfd4e3118551da1121b8f546c4e  ./app/mods-harness/tools/web-board/server.mjs
+5d38c64c1868eab4f5f5839859bf24dfc546389ee12cd4c0dc349f224e926bbb  ./app/mods-harness/tools/web-board/server.mjs
 0452b5af46d43dc40f55da21be8772282d555a59d4535ed7d9d450128e45b23e  ./app/mods-harness/tools/web-board/setup.mjs
 1e8ee42064c0d0e1d9fa14d6f358026f6ffa172a0dad0562d0e24ab0ffe097f2  ./app/mods-harness/tools/web-board/web.example.json
 6d41eec33d0d6e28a2ea6ea80e1a8132601cd42fd67965ccd8f774467af27ce8  ./app/mods-harness/types/index.d.ts

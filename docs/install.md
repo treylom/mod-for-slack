@@ -9,16 +9,37 @@
 mod-for-slack 은 Claude Code 에 CCMod(Claude Code mod)를 붙여서 돌아갑니다. CCMod 는 화면만 바꾸는 장식이 아닙니다. Claude Code «안»에서 함수로 돌기 때문에, AI 가 도구를 쓰기 직전에 대화를 보고 판단하는 관문을 예전 훅보다 앞에 세울 수 있습니다. 따로 도는 서버(MCP 서버) 없이 도구를 바로 등록할 수도 있습니다([공식 안내](https://code.claude.com/docs/en/plugins/mods/overview.md)).
 
 ```mermaid
+flowchart TB
+  subgraph NO["CCMod 없을 때 — 먼 길"]
+    direction LR
+    A1["AI 가 도구를 쓰려 함<br/>Claude Code 안"] -- "밖으로 나감" --> P1["프로그램을 켬<br/>Claude Code 밖"] --> W1["답을 쓰고 다시 끔<br/>Claude Code 밖"] -- "안으로 돌아옴" --> R1["답을 받아 다음으로<br/>Claude Code 안"]
+  end
+  subgraph YES["CCMod 있을 때 — 짧은 길"]
+    direction LR
+    A2["AI 가 도구를 쓰려 함<br/>Claude Code 안"] -- "안에서" --> C2["CCMod 가 판정<br/>안에 늘 켜져 있음"]
+  end
+  NO ~~~ YES
+  classDef out stroke-dasharray:5 5
+  class P1,W1 out
+```
+
+CCMod 는 Claude Code 안에 늘 켜져 있는 부품입니다. 위아래 두 줄은 AI 가 도구를 쓰기 직전의 검사라는 같은 일을 두 방식으로 그린 것이고, 아래 줄이 CCMod 의 기본 꼴입니다. mod-for-slack 은 여기에 더해 도구를 쓸 때마다 규칙 검사 프로그램을 밖에서 한 번 부릅니다. 이 부름은 안에 켜진 CCMod 가 내가 설정해 둔 훅보다 먼저 하고, 그때 지금까지의 대화도 검사 프로그램에 함께 넘깁니다. 줄 길이는 거쳐 가는 자리를 보여 줄 뿐이고, 더 빠르다는 뜻이 아닙니다.
+
+**한 번 더 자세히 — 도구를 한 번 쓸 때 지나는 길**
+
+```mermaid
 flowchart LR
   subgraph IN["Claude Code 안"]
-    A["AI 가 도구를 쓰려 함"] --> G{"CCMod 관문<br/>대화를 보고 판단"}
+    A["AI 가 도구를 쓰려 함"] --> G{"CCMod 관문<br/>대화를 넘겨 판정"}
     G -- "통과" --> H["예전 훅<br/>설정 훅"] --> T["도구 실행"]
     G -- "막기 · 대신 답" --> X["도구 안 돎"]
     MT["CCMod 도구<br/>새 창 열기 · 보고하기"]
   end
   subgraph OUT["Claude Code 밖"]
+    P["규칙 검사 프로그램<br/>공개판 = 모두 통과 자리"]
     M["MCP 서버<br/>따로 도는 프로그램"]
   end
+  G -. "도구를 쓸 때마다 부름" .-> P
   T -. "MCP 도구면 그 서버가 처리" .-> M
 ```
 

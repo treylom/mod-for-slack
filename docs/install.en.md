@@ -9,16 +9,37 @@ This page walks through installing mod-for-slack for the first time, one step at
 mod-for-slack works by adding a CCMod (Claude Code mod) to Claude Code. A CCMod is not just decoration for the screen. Because it runs as functions "inside" Claude Code, it can put a gate in front of the older hooks, one that looks at the conversation right before the AI uses a tool. It can also register tools directly, with no separate server (MCP server) ([official docs](https://code.claude.com/docs/en/plugins/mods/overview.md)).
 
 ```mermaid
+flowchart TB
+  subgraph NO["Without a CCMod — the long way"]
+    direction LR
+    A1["AI wants to use a tool<br/>inside Claude Code"] -- "goes outside" --> P1["A program starts<br/>outside Claude Code"] --> W1["Writes an answer, then stops<br/>outside Claude Code"] -- "comes back in" --> R1["Gets the answer and moves on<br/>inside Claude Code"]
+  end
+  subgraph YES["With a CCMod — the short way"]
+    direction LR
+    A2["AI wants to use a tool<br/>inside Claude Code"] -- "inside" --> C2["The CCMod decides<br/>always on inside"]
+  end
+  NO ~~~ YES
+  classDef out stroke-dasharray:5 5
+  class P1,W1 out
+```
+
+A CCMod is a part that stays switched on inside Claude Code. The two rows draw the same job, the check right before the AI uses a tool, both ways; the bottom row is the basic CCMod shape. On top of that, mod-for-slack calls a rule-check program outside once each time a tool is used. The CCMod inside makes that call before the hooks you set in your own settings, and hands the program the conversation so far. Row length shows the places passed and does not mean faster.
+
+**A closer look — the path of one tool call**
+
+```mermaid
 flowchart LR
   subgraph IN["Inside Claude Code"]
-    A["AI is about to use a tool"] --> G{"CCMod gate<br/>decides with the conversation in view"}
+    A["AI is about to use a tool"] --> G{"CCMod gate<br/>passes the conversation on for a verdict"}
     G -- "go ahead" --> H["older hook<br/>settings hook"] --> T["tool runs"]
     G -- "stop · answer instead" --> X["tool does not run"]
     MT["CCMod tools<br/>open a window · report"]
   end
   subgraph OUT["Outside Claude Code"]
+    P["rule-check program<br/>public kit = allow-all slot"]
     M["MCP server<br/>a separate program"]
   end
+  G -. "called on every tool use" .-> P
   T -. "an MCP tool is handled by its server" .-> M
 ```
 

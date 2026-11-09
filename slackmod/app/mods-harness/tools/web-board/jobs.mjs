@@ -358,6 +358,69 @@ export function displayOf(conf, words) {
 
 // board = boardModel 결과 · rooms =[{ room, title, nodes[{id,status,label,owner,mentions}], edges }] · okAt = 마지막 좋은 읽기(ms) · hide = 덧 가림 낱말 · roster·names = 봇 표시 이름
 const PROTO_ID = (id) => id === '__proto__' || id in Object.prototype
+// ── 11-09 숫자 칸 하루 1행 기록(주인 «이대로 ㄱㄱ.» ③) ──
+// 머리 숫자 줄(내가 정할 것·막힘·진행·프로젝트·경고)은 화면(jobs.html prep·botRows·mergeBots·renderBoard)이 /api/jobs 몸통에서 셈 →
+// 같은 몸통에서 같은 규칙으로 셈(화면 숫자 = 기록 숫자 · DOM 대조 시험 jobs.history.dom.test.mjs).
+//   방 = rooms[] 중 room 이 글자·nodes 가 배열 · 마디 = id 있음 · 상태 'blocked' → 'warn' · 모르는 상태 → 'unknown' · 'placeholder' 마디 뺌
+//   닫힌 방(closed) = 정할 것·막힘·진행 0(방 수·% 엔 듦) · % = 목표 뺀 마디 중 끝남 비율(반올림 · 마디 0 = 0)
+//   경고 = 보고 없이 닫힌 일(봇 7일 합) + 오래 응답 없는 봇 — 봇 = ops.bots 를 화면 이름(display_name · 없으면 bot)으로 묶음(칸마다 큰 값 · 상태 = 화면 mergeBots 규칙)
+//   화면은 이름 묶을 때 redact 를 한 번 더 거침 — 서버 몸통은 이미 scrubDeep 을 지난 글이라 묶음이 갈리는 경우는 시험 밖(결과 파일에 적음)
+// 사용량 % = usage.accounts 의 #순번·5시간·7일(#순번 = 계정 우선순위 자리 · 순서가 바뀌면 같은 #이 다른 계정일 수 있음) · 방 % = { 방 id: % }
+const KPI_SN = new Set(['done', 'doing', 'waiting', 'goal', 'owner', 'warn', 'unknown', 'caution'])
+export function kpiRowOf(api) {
+  const rooms = (api && Array.isArray(api.rooms) ? api.rooms : []).filter((r) => r && typeof r.room === 'string' && Array.isArray(r.nodes))
+  let dec = 0, blk = 0, doing = 0
+  const pct = {}
+  for (const r of rooms) {
+    const st = r.nodes.filter((n) => n && n.id != null).map((n) => { const s = String(n.status || ''); return s === 'blocked' ? 'warn' : s === 'placeholder' ? 'placeholder' : KPI_SN.has(s) ? s : 'unknown' }).filter((s) => s !== 'placeholder')
+    const work = st.filter((s) => s !== 'goal'), done = work.filter((s) => s === 'done').length
+    pct[r.room] = work.length ? Math.round(done / work.length * 100) : 0
+    if (r.closed === true) continue
+    dec += st.filter((s) => s === 'owner').length; blk += st.filter((s) => s === 'warn').length; doing += st.filter((s) => s === 'doing').length
+  }
+  const by = new Map()
+  for (const b of (api && api.ops && Array.isArray(api.ops.bots) ? api.ops.bots : [])) {
+    if (!b) continue
+    const key = b.bot != null ? String(b.bot) : null
+    const nm = typeof b.display_name === 'string' && b.display_name.trim() ? b.display_name.trim() : key
+    const k = 'n:' + nm
+    if (!by.has(k)) { by.set(k, { ...b }); continue }
+    const m = by.get(k)
+    if (b.noreport7 != null) m.noreport7 = Math.max(m.noreport7 || 0, b.noreport7)
+    if (b.state === 'busy' || (m.state !== 'busy' && b.state === 'idle' && m.state !== 'idle')) m.state = b.state
+  }
+  const bots = [...by.values()]
+  const noreport = bots.reduce((s, b) => s + (Number(b.noreport7) || 0), 0), stale = bots.filter((b) => String(b.state || '') === 'stale').length
+  const accts = api && api.usage && Array.isArray(api.usage.accounts) ? api.usage.accounts : null
+  const num = (v) => (Number.isFinite(v) ? v : null)
+  return { dec, blk, doing, proj: rooms.length, cau: noreport + stale, noreport, stale,
+    usage: accts ? accts.filter((a) => a && typeof a === 'object').map((a) => ({ label: typeof a.label === 'string' ? a.label : null, five_h_pct: num(a.five_h_pct), week_pct: num(a.week_pct) })) : null,
+    rooms: pct }
+}
+// 기록 파일 몸통 { v: 1, start, daily: [{ day, …kpiRowOf }] } 에 그날 행을 넣음(같은 날 = 덮어씀 · 날짜 차례 · 최근 cap 행) · start = 처음 쓴 날(행이 밀려나도 그대로)
+export const HISTORY_CAP = 30
+const DAY_RX = /^\d{4}-\d\d-\d\d$/
+export function historyPut(hist, day, row, cap = HISTORY_CAP) {
+  if (!DAY_RX.test(String(day))) return historyOf(hist)
+  const h = historyOf(hist)
+  const daily = h.daily.filter((r) => r.day !== day).concat([{ day, ...row }]).sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : 0)).slice(-cap)
+  return { v: 1, start: h.start && h.start <= day ? h.start : day, daily }
+}
+// 읽은 파일 몸통 다듬기(꼴이 틀린 행 뺌) · 꼴이 아니면 빈 기록
+export function historyOf(x) {
+  const ok = x && typeof x === 'object' && !Array.isArray(x)
+  const daily = ok && Array.isArray(x.daily) ? x.daily.filter((r) => r && typeof r === 'object' && !Array.isArray(r) && DAY_RX.test(String(r.day))) : []
+  return { v: 1, start: ok && DAY_RX.test(String(x.start)) ? x.start : daily.length ? daily[0].day : null, daily }
+}
+
+// 11-09 14일 «막힘»: boardModel blockedSeen[i](그날 날짜 붙은 게시판 줄이 있음 · 오늘 = 늘 참)이 거짓인 칸 = null(«셈 안 됨» · 0 이 아님)
+//   blockedSeen 칸이 아예 없는 입력(옛 boardModel·시험 몸통) = 배열 그대로
+export function blockedKnown(arr, board) {
+  if (!Array.isArray(arr)) return null
+  if (!board || !('blockedSeen' in board)) return arr
+  const seen = Array.isArray(board.blockedSeen) ? board.blockedSeen : []
+  return arr.map((x, i) => (seen[i] === true ? x : null))
+}
 export function jobsModel({ board, rooms, okAt, hide, roster, names, hideBots, glossary }) {
   const bots = (Array.isArray(board && board.bots) ? board.bots : []).filter((b) => !(b && botHidden(b.bot, roster, hideBots)))
   const sessions = Array.isArray(board && board.sessions) ? board.sessions : []
@@ -383,7 +446,7 @@ export function jobsModel({ board, rooms, okAt, hide, roster, names, hideBots, g
         blocked7: b.blocked7, done14: b.series ? b.series.done : null, tokensNow: b.tokensNow, job: jobOf(b.bot), tokens7: null })),
       counts: board.counts || null,
       days: Array.isArray(board.days) ? board.days : null,
-      total14: { started: T.started || null, done: T.done || null, noreport: T.noreport || null, blocked: T.blocked || null, tokens: T.tokens || null },
+      total14: { started: T.started || null, done: T.done || null, noreport: T.noreport || null, blocked: blockedKnown(T.blocked, board), tokens: T.tokens || null },
     } : null,
     usage: null, ledger: null, approvals: null,
     read_at: at, last_ok_at: at,

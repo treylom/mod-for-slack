@@ -21,6 +21,23 @@ mods API 의 전체 타입은 저장소에 없습니다. Claude Code 가 `--plug
 | MCP 서버 | Claude 에게 도구를 주는 바깥 프로세스 · 서비스 |
 | mod | Claude Code 가 자기 프로세스 안에서 부르는 플러그인 함수 |
 
+```mermaid
+flowchart TB
+  subgraph NO["CCMod 없을 때 — command 훅"]
+    direction LR
+    A1["PreToolUse 이벤트<br/>Claude Code 프로세스"] -- "새 프로세스 띄움" --> P1["훅 명령 실행<br/>바깥 프로세스"] --> W1["종료 코드·stdout 으로 답하고 끝남<br/>바깥 프로세스"] -- "결과 읽음" --> R1["판정 반영<br/>Claude Code 프로세스"]
+  end
+  subgraph YES["CCMod 있을 때 — mod 훅"]
+    direction LR
+    A2["tool.call 이벤트<br/>Claude Code 프로세스"] -- "함수 호출" --> C2["mod 훅 함수<br/>next · {deny} · {result}"]
+  end
+  NO ~~~ YES
+  classDef out stroke-dasharray:5 5
+  class P1,W1 out
+```
+
+mod 는 Claude Code 가 자기 프로세스 안에서 부르는 플러그인 함수입니다(공식 정의). 위아래 두 줄은 도구 호출 직전 검사라는 같은 일을 두 방식으로 그린 것이고, 아래 줄이 mod 의 기본 꼴입니다. mod-for-slack 은 여기에 더해 `src/hooks-port` 관문이 도구 호출마다 `$.process.run` 으로 파이썬 실행기를 부릅니다. 그 부름은 mod 의 `tool.call` 안, 곧 사용자·프로젝트 설정 `PreToolUse` 보다 앞에서 일어나고 세션 대화를 입력으로 받습니다(관리 설정 `PreToolUse` 는 예외 · 아래 «순서»·«과장하지 않을 것»). 줄 길이는 거치는 자리 수일 뿐 지연 수치가 아닙니다. 아래 두 그림이 훅 쪽과 도구 쪽을 한 번 더 자세히 보여 줍니다.
+
 ### 훅 쪽 차이
 
 - **결과의 폭** — 설정 훅은 진행 여부 · 인자 · 결과 · 덧붙일 문맥을 바꿉니다. mod 훅은 `next(e)` 로 지켜보거나 바꾼 `e` 를 넘기고, `{deny}` 로 막고, `{result}` 로 도구를 돌리지 않고 대신 답합니다(Observe · Rewrite · Answer · [개요](https://code.claude.com/docs/en/plugins/mods/overview.md)).
